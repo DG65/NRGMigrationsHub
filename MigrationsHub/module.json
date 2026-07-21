@@ -1,0 +1,15 @@
+{
+  "id": "{330717BB-E309-41A2-90A8-FDA3179ED948}",
+  "name": "MigrationsHub",
+  "type": 3,
+  "vendor": "",
+  "aliases": [
+    "MigrationsHub",
+    "Geräte-Migration"
+  ],
+  "url": "https://github.com/DG65/MigrationsHub",
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "MIGHUB"
+}
