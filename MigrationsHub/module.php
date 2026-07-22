@@ -31,23 +31,94 @@ class MigrationsHub extends IPSModule
         $this->RegisterPropertyInteger('SourceInstanceID', 0);
         $this->RegisterPropertyInteger('TargetInstanceID', 0);
 
-        // Abhak-Liste manuell zu prüfender Fundstellen (Skripte/Events, die die
-        // Alt-Variablen-ID referenzieren) — Property, damit der Nutzer sie
-        // Stück für Stück abarbeiten kann und der Fortschritt über mehrere
-        // Sitzungen hinweg erhalten bleibt, statt bei jedem Formular-Neuöffnen
-        // neu anfangen zu müssen.
-        // Getrennt nach Skript/Event (statt einer gemeinsamen Liste), weil sich
-        // damit im Formular je ein SelectScript-/SelectEvent-Feld verwenden
-        // lässt — die haben in der Konsole einen eingebauten "Bearbeiten"-
-        // Knopf, der direkt zum Objekt springt.
-        $this->RegisterPropertyString('ScriptChecks', '[]');
-        $this->RegisterPropertyString('EventChecks', '[]');
+        // Abhak-Listen manuell zu prüfender Fundstellen (Skripte/Events, die
+        // die Alt-Variablen-ID referenzieren) — bewusst Attribute statt
+        // Properties: beim "Änderungen übernehmen" schreibt IP-Symcon nur die
+        // editierbaren Spalten einer Formular-Liste in die Property zurück,
+        // reine Anzeige-Spalten wie OldName gehen dabei verloren. Attribute
+        // hängen nicht am Speichern-Zyklus des Formulars; geschrieben wird
+        // direkt beim Scan bzw. per onEdit-Handler beim Abhaken.
+        // Getrennt nach Skript/Event (statt einer gemeinsamen Liste), weil
+        // sich damit im Formular je ein SelectScript-/SelectEvent-Feld
+        // verwenden lässt — die haben in der Konsole einen eingebauten
+        // "Bearbeiten"-Knopf, der direkt zum Objekt springt.
+        $this->RegisterAttributeString('ScriptChecks', '[]');
+        $this->RegisterAttributeString('EventChecks', '[]');
     }
 
     public function ApplyChanges()
     {
         parent::ApplyChanges();
         $this->SetStatus(102);
+    }
+
+    // Befüllt die attribut-gestützten Checklisten beim Öffnen des Formulars —
+    // deren Inhalt steht nicht in form.json ("values": []) und käme sonst
+    // nach einem Neuöffnen leer zurück.
+    public function GetConfigurationForm()
+    {
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        foreach ($form['elements'] as &$element) {
+            if (($element['name'] ?? '') === 'ScriptChecks') {
+                $element['values'] = json_decode($this->ReadAttributeString('ScriptChecks'), true);
+            } elseif (($element['name'] ?? '') === 'EventChecks') {
+                $element['values'] = json_decode($this->ReadAttributeString('EventChecks'), true);
+            }
+        }
+        unset($element);
+        return json_encode($form);
+    }
+
+    // onEdit-Handler der beiden Checklisten: schreibt den aktuellen Stand
+    // (v. a. die Erledigt-Haken) sofort ins Attribut, damit der Fortschritt
+    // ohne "Änderungen übernehmen" erhalten bleibt. Wichtig: der Client
+    // liefert nur die editierbaren Spalten (ObjectID, Done) — die Zeilen
+    // werden deshalb per Index in die vollständig gespeicherten Attribut-
+    // Zeilen zurückgemergt statt sie zu ersetzen (sonst gingen OldName/
+    // OldVariableID genauso verloren wie zuvor beim Property-Speichern).
+    public function SaveScriptChecks($scriptChecks): void
+    {
+        $this->WriteAttributeString('ScriptChecks', json_encode(
+            $this->MergeCheckEdits(json_decode($this->ReadAttributeString('ScriptChecks'), true), $this->NormalizeFormList($scriptChecks))
+        ));
+    }
+
+    public function SaveEventChecks($eventChecks): void
+    {
+        $this->WriteAttributeString('EventChecks', json_encode(
+            $this->MergeCheckEdits(json_decode($this->ReadAttributeString('EventChecks'), true), $this->NormalizeFormList($eventChecks))
+        ));
+    }
+
+    private function MergeCheckEdits(array $stored, array $incoming): array
+    {
+        // Zeilenanzahl gleich (Normalfall: nur ein Haken wurde geändert) →
+        // Index-Merge. Weniger Zeilen vom Client → Nutzer hat Zeilen gelöscht;
+        // dann werden die gespeicherten Zeilen anhand der noch vorhandenen
+        // ObjectID/Done-Paare gefiltert (Reihenfolge bleibt erhalten).
+        if (count($incoming) === count($stored)) {
+            foreach ($incoming as $i => $row) {
+                $stored[$i]['Done'] = !empty($row['Done']);
+                if (isset($row['ObjectID'])) {
+                    $stored[$i]['ObjectID'] = (int) $row['ObjectID'];
+                }
+            }
+            return $stored;
+        }
+
+        $result = [];
+        $cursor = 0;
+        foreach ($incoming as $row) {
+            for ($i = $cursor; $i < count($stored); $i++) {
+                if ((int) $stored[$i]['ObjectID'] === (int) ($row['ObjectID'] ?? 0)) {
+                    $stored[$i]['Done'] = !empty($row['Done']);
+                    $result[] = $stored[$i];
+                    $cursor = $i + 1;
+                    break;
+                }
+            }
+        }
+        return $result;
     }
 
     // Verknüpft eine alte mit einer neuen Variable: übernimmt, sofern möglich,
@@ -321,11 +392,14 @@ class MigrationsHub extends IPSModule
     // Abhak-Listen (ScriptChecks/EventChecks) — bereits vorhandene Einträge
     // (inkl. bereits gesetztem "Erledigt"-Haken) bleiben unangetastet, damit
     // ein erneuter Scan den Fortschritt nicht zurücksetzt.
-    public function ScanReferences($migrations, $scriptChecks, $eventChecks): void
+    public function ScanReferences($migrations): void
     {
         $migrations = $this->NormalizeFormList($migrations);
-        $scriptChecks = $this->NormalizeFormList($scriptChecks);
-        $eventChecks = $this->NormalizeFormList($eventChecks);
+        // Bestand aus den Attributen lesen (nicht aus dem Formular): dort
+        // liegen die Zeilen vollständig, inkl. der Anzeige-Spalten, die der
+        // Client beim Übertragen von Listen-Werten verwirft.
+        $scriptChecks = json_decode($this->ReadAttributeString('ScriptChecks'), true);
+        $eventChecks = json_decode($this->ReadAttributeString('EventChecks'), true);
 
         $existingScriptKeys = [];
         foreach ($scriptChecks as $row) {
@@ -372,6 +446,8 @@ class MigrationsHub extends IPSModule
             }
         }
 
+        $this->WriteAttributeString('ScriptChecks', json_encode($scriptChecks));
+        $this->WriteAttributeString('EventChecks', json_encode($eventChecks));
         $this->UpdateFormField('ScriptChecks', 'values', json_encode($scriptChecks));
         $this->UpdateFormField('EventChecks', 'values', json_encode($eventChecks));
     }

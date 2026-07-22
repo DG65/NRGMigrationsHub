@@ -150,7 +150,7 @@
     {
       "type": "Button",
       "caption": "Referenzen scannen (Skripte/Events)",
-      "onClick": "MIGHUB_ScanReferences($id, $Migrations, $ScriptChecks, $EventChecks);"
+      "onClick": "MIGHUB_ScanReferences($id, $Migrations);"
     },
     {
       "type": "Label",
@@ -163,6 +163,7 @@
       "rowCount": 8,
       "add": false,
       "delete": true,
+      "onEdit": "MIGHUB_SaveScriptChecks($id, $ScriptChecks);",
       "columns": [
         {
           "caption": "Alte Variable",
@@ -207,6 +208,7 @@
       "rowCount": 8,
       "add": false,
       "delete": true,
+      "onEdit": "MIGHUB_SaveEventChecks($id, $EventChecks);",
       "columns": [
         {
           "caption": "Alte Variable",
