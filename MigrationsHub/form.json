@@ -312,6 +312,68 @@
         }
       ],
       "values": []
+    },
+    {
+      "type": "ExpansionPanel",
+      "caption": "Instanz analysieren & löschen",
+      "items": [
+        {
+          "type": "Label",
+          "caption": "Vor dem Löschen einer Alt-Instanz alle Abhängigkeiten prüfen. Hängen weitere Instanzen als Verbindungskinder (Transport) daran, wird das Löschen hart blockiert — sonst reißt es den Bus unter einem laufenden Gerätebaum weg."
+        },
+        {
+          "type": "SelectInstance",
+          "name": "AnalyzeInstanceID",
+          "caption": "Zu prüfende Instanz"
+        },
+        {
+          "type": "Button",
+          "caption": "Instanz analysieren",
+          "onClick": "MIGHUB_AnalyzeInstance($id, $AnalyzeInstanceID);"
+        },
+        {
+          "type": "List",
+          "name": "InstanceReport",
+          "caption": "Abhängigkeits-Report",
+          "rowCount": 10,
+          "add": false,
+          "delete": false,
+          "columns": [
+            {
+              "caption": "Kategorie",
+              "name": "Category",
+              "width": "220px"
+            },
+            {
+              "caption": "Fund",
+              "name": "Detail",
+              "width": "auto"
+            },
+            {
+              "caption": "Objekt-ID",
+              "name": "ObjectID",
+              "width": "100px"
+            },
+            {
+              "caption": "Schweregrad",
+              "name": "Severity",
+              "width": "120px"
+            }
+          ],
+          "values": []
+        },
+        {
+          "type": "CheckBox",
+          "name": "DeleteConfirmed",
+          "caption": "Ich habe den Report geprüft und will die Instanz trotz gemeldeter Warnungen löschen"
+        },
+        {
+          "type": "Button",
+          "caption": "Instanz jetzt löschen",
+          "confirm": "Die gewählte Instanz wird unwiderruflich gelöscht (samt Kindvariablen). Transport-Abhängigkeiten blockieren das Löschen; Warnungen werden überstimmt. Wirklich fortfahren?",
+          "onClick": "MIGHUB_DeleteInstanceChecked($id, $AnalyzeInstanceID, $DeleteConfirmed);"
+        }
+      ]
     }
   ]
 }

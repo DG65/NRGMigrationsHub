@@ -632,4 +632,239 @@ class MigrationsHub extends IPSModule
 
         return [$migrations, $results];
     }
+
+    // --- Instanz analysieren & (nach Prüfung) löschen ---------------------
+    //
+    // Vor dem Löschen einer Alt-Instanz alle Abhängigkeiten sichtbar machen.
+    // Wichtigste Erkenntnis aus der Praxis: eine Instanz kann ein Transport-
+    // Knoten sein (Splitter/Gateway/Socket), an dem weitere Instanzen als
+    // Verbindungskinder hängen — die zu löschen reißt einen ganzen Gerätebaum
+    // vom Bus. Solche Struktur-Abhängigkeiten blockieren das Löschen hart;
+    // die weicheren Referenzen (Verknüpfungen, Skripte, Ereignisse, fremde
+    // Modul-Einstellungen, eigene Profile) werden nur als Warnung gemeldet.
+
+    public function AnalyzeInstance(int $instanceID): void
+    {
+        $this->UpdateFormField('InstanceReport', 'values', json_encode($this->BuildInstanceReport($instanceID)));
+    }
+
+    // Baut den Abhängigkeits-Report als Zeilenliste. Jede Zeile:
+    // Kategorie / Fund / Objekt(-ID) / Schweregrad ("blockiert" | "Warnung").
+    private function BuildInstanceReport(int $instanceID): array
+    {
+        $rows = [];
+        if ($instanceID === 0 || !IPS_InstanceExists($instanceID)) {
+            return [[
+                'Category' => 'Instanz',
+                'Detail' => 'Instanz existiert nicht',
+                'ObjectID' => $instanceID,
+                'Severity' => 'blockiert',
+            ]];
+        }
+
+        // 1) Verbindungskinder (Transport-Abhängigkeit) — hart blockierend.
+        foreach ($this->FindConnectionChildren($instanceID) as $childID) {
+            $rows[] = [
+                'Category' => 'Verbindungskind (Transport)',
+                'Detail' => IPS_GetName($childID) . ' hängt als Instanz an diesem Verbindungsknoten',
+                'ObjectID' => $childID,
+                'Severity' => 'blockiert',
+            ];
+        }
+
+        // Kindvariablen der Instanz einmalig sammeln (für 2–4 wiederverwendet).
+        $variableIDs = $this->CollectVariableIDs($instanceID);
+
+        // 2) WebFront-Verknüpfungen + Archivierung je Kindvariable.
+        $linkCounts = $this->BuildLinkCountMap();
+        foreach ($variableIDs as $variableID) {
+            $linkCount = $linkCounts[$variableID] ?? 0;
+            if ($linkCount > 0) {
+                $rows[] = [
+                    'Category' => 'Verknüpfung',
+                    'Detail' => $linkCount . ($linkCount === 1 ? ' Verknüpfung zeigt' : ' Verknüpfungen zeigen') . ' auf »' . IPS_GetName($variableID) . '«',
+                    'ObjectID' => $variableID,
+                    'Severity' => 'Warnung',
+                ];
+            }
+            if ($this->FindArchiveInstance($variableID) !== 0) {
+                $rows[] = [
+                    'Category' => 'Archiv',
+                    'Detail' => '»' . IPS_GetName($variableID) . '« wird noch archiviert (Historie ginge verloren)',
+                    'ObjectID' => $variableID,
+                    'Severity' => 'Warnung',
+                ];
+            }
+        }
+
+        // 3) Skripte/Ereignisse, die eine Kindvariable per ID referenzieren.
+        foreach ($variableIDs as $variableID) {
+            foreach ($this->FindScriptReferences($variableID) as $scriptID) {
+                $rows[] = [
+                    'Category' => 'Skript',
+                    'Detail' => 'Skript »' . IPS_GetName($scriptID) . '« nennt die ID von »' . IPS_GetName($variableID) . '« (Textfund, ggf. Fehltreffer)',
+                    'ObjectID' => $scriptID,
+                    'Severity' => 'Warnung',
+                ];
+            }
+            foreach ($this->FindEventReferences($variableID) as $eventID) {
+                $rows[] = [
+                    'Category' => 'Ereignis',
+                    'Detail' => 'Ereignis »' . IPS_GetName($eventID) . '« wird durch »' . IPS_GetName($variableID) . '« ausgelöst',
+                    'ObjectID' => $eventID,
+                    'Severity' => 'Warnung',
+                ];
+            }
+        }
+
+        // 4) Fremde Instanzen, die eine Kindvariable in ihrer Konfiguration
+        //    als Property halten (Textsuche über die Konfigurations-JSON).
+        foreach ($this->FindForeignConfigReferences($instanceID, $variableIDs) as $foreignID => $variableID) {
+            $rows[] = [
+                'Category' => 'Fremde Instanz',
+                'Detail' => 'Instanz »' . IPS_GetName($foreignID) . '« nennt in ihrer Konfiguration die ID von »' . IPS_GetName($variableID) . '«',
+                'ObjectID' => $foreignID,
+                'Severity' => 'Warnung',
+            ];
+        }
+
+        // 5) Eigene Profile der Kindvariablen (nur benutzerdefinierte, die nach
+        //    dem Löschen verwaist zurückblieben).
+        foreach ($this->FindCustomProfiles($variableIDs) as $profileName) {
+            $rows[] = [
+                'Category' => 'Profil',
+                'Detail' => 'Benutzerprofil »' . $profileName . '« bliebe nach dem Löschen verwaist',
+                'ObjectID' => 0,
+                'Severity' => 'Warnung',
+            ];
+        }
+
+        if ($rows === []) {
+            $rows[] = [
+                'Category' => 'Ergebnis',
+                'Detail' => 'Keine Abhängigkeiten gefunden — Löschen erscheint gefahrlos',
+                'ObjectID' => $instanceID,
+                'Severity' => 'ok',
+            ];
+        }
+        return $rows;
+    }
+
+    // Löscht die Instanz — aber nur, wenn keine Transport-Abhängigkeit besteht
+    // (Verbindungskinder). Weiche Referenzen werden per Bestätigungsschalter
+    // überstimmt; der native confirm-Dialog der Schaltfläche ist zusätzlich
+    // vorgeschaltet.
+    public function DeleteInstanceChecked(int $instanceID, bool $confirmed): void
+    {
+        if ($instanceID === 0 || !IPS_InstanceExists($instanceID)) {
+            $this->UpdateFormField('InstanceReport', 'values', json_encode([[
+                'Category' => 'Löschen', 'Detail' => 'Abgebrochen: Instanz existiert nicht', 'ObjectID' => $instanceID, 'Severity' => 'blockiert',
+            ]]));
+            return;
+        }
+        $connectionChildren = $this->FindConnectionChildren($instanceID);
+        if ($connectionChildren !== []) {
+            $this->UpdateFormField('InstanceReport', 'values', json_encode([[
+                'Category' => 'Löschen',
+                'Detail' => 'Blockiert: ' . count($connectionChildren) . ' Instanz(en) hängen als Verbindungskinder daran — erst umhängen/entfernen',
+                'ObjectID' => $instanceID,
+                'Severity' => 'blockiert',
+            ]]));
+            return;
+        }
+        if (!$confirmed) {
+            $this->UpdateFormField('InstanceReport', 'values', json_encode([[
+                'Category' => 'Löschen', 'Detail' => 'Abgebrochen: Bestätigungsschalter nicht gesetzt', 'ObjectID' => $instanceID, 'Severity' => 'blockiert',
+            ]]));
+            return;
+        }
+        $name = IPS_GetName($instanceID);
+        IPS_DeleteInstance($instanceID);
+        $this->UpdateFormField('InstanceReport', 'values', json_encode([[
+            'Category' => 'Löschen', 'Detail' => 'Instanz »' . $name . '« (#' . $instanceID . ') wurde gelöscht', 'ObjectID' => 0, 'Severity' => 'ok',
+        ]]));
+    }
+
+    // Instanzen, deren ConnectionID auf $instanceID zeigt — also alles, was
+    // seinen Bus/Transport über diese Instanz führt.
+    private function FindConnectionChildren(int $instanceID): array
+    {
+        $children = [];
+        foreach (IPS_GetInstanceList() as $iid) {
+            if (IPS_GetInstance($iid)['ConnectionID'] === $instanceID) {
+                $children[] = $iid;
+            }
+        }
+        return $children;
+    }
+
+    // Alle Kindvariablen einer Instanz (rekursiv über Unterkategorien).
+    private function CollectVariableIDs(int $parentID): array
+    {
+        $ids = [];
+        foreach (IPS_GetChildrenIDs($parentID) as $childID) {
+            $object = IPS_GetObject($childID);
+            if ($object['ObjectType'] === 2 /* Variable */) {
+                $ids[] = $childID;
+            }
+            if (in_array($object['ObjectType'], [0 /* Category */, 2 /* Variable */], true)) {
+                $ids = array_merge($ids, $this->CollectVariableIDs($childID));
+            }
+        }
+        return $ids;
+    }
+
+    // Fremde Instanzen (nicht $instanceID selbst), deren Konfigurations-JSON
+    // eine der Variablen-IDs als Zahl enthält. Liefert Map fremdeInstanz =>
+    // erste gefundene VariableID.
+    private function FindForeignConfigReferences(int $instanceID, array $variableIDs): array
+    {
+        if ($variableIDs === []) {
+            return [];
+        }
+        $idSet = array_flip($variableIDs);
+        $result = [];
+        foreach (IPS_GetInstanceList() as $iid) {
+            if ($iid === $instanceID) {
+                continue;
+            }
+            $config = @IPS_GetConfiguration($iid);
+            if (!is_string($config) || $config === '') {
+                continue;
+            }
+            foreach ($this->ExtractIntegers($config) as $number) {
+                if (isset($idSet[$number])) {
+                    $result[$iid] = $number;
+                    break;
+                }
+            }
+        }
+        return $result;
+    }
+
+    // Zieht alle ganzzahligen Zahlen aus einem Konfigurations-JSON, um sie
+    // gegen die Variablen-IDs abzugleichen (IDs stehen dort je nach Modul als
+    // Zahl oder in einer Liste; ein simpler strpos würde Teiltreffer liefern).
+    private function ExtractIntegers(string $text): array
+    {
+        preg_match_all('/\d+/', $text, $matches);
+        return array_map('intval', $matches[0]);
+    }
+
+    // Benutzerdefinierte Profile (nicht ~Standardprofile), die von den
+    // Variablen genutzt werden und nach dem Löschen niemand mehr referenziert.
+    private function FindCustomProfiles(array $variableIDs): array
+    {
+        $profiles = [];
+        foreach ($variableIDs as $variableID) {
+            if (!IPS_VariableExists($variableID)) {
+                continue;
+            }
+            $profile = IPS_GetVariable($variableID)['VariableCustomProfile'] ?: IPS_GetVariable($variableID)['VariableProfile'];
+            if ($profile !== '' && $profile[0] !== '~') {
+                $profiles[$profile] = true;
+            }
+        }
+        return array_keys($profiles);
+    }
 }
