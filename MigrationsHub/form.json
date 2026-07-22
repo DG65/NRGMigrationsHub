@@ -161,7 +161,8 @@
         {
           "caption": "Alte Variable",
           "name": "OldName",
-          "width": "200px"
+          "width": "200px",
+          "add": ""
         },
         {
           "caption": "Skript",
@@ -183,7 +184,8 @@
           "caption": "OldVariableID",
           "name": "OldVariableID",
           "width": "80px",
-          "visible": false
+          "visible": false,
+          "add": 0
         }
       ],
       "values": []
@@ -203,7 +205,8 @@
         {
           "caption": "Alte Variable",
           "name": "OldName",
-          "width": "200px"
+          "width": "200px",
+          "add": ""
         },
         {
           "caption": "Event",
@@ -225,7 +228,8 @@
           "caption": "OldVariableID",
           "name": "OldVariableID",
           "width": "80px",
-          "visible": false
+          "visible": false,
+          "add": 0
         }
       ],
       "values": []
@@ -265,7 +269,8 @@
         {
           "caption": "Alte Variable",
           "name": "OldName",
-          "width": "200px"
+          "width": "200px",
+          "add": ""
         },
         {
           "caption": "Neue Variable",
