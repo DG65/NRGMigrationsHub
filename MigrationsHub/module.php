@@ -288,6 +288,13 @@ class MigrationsHub extends IPSModule
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
     }
 
+    // Leert die Migrationsliste komplett — Alternative zum einzelnen Löschen
+    // jeder Zeile per Papierkorb-Symbol.
+    public function ClearMigrations(): void
+    {
+        $this->UpdateFormField('Migrations', 'values', json_encode([]));
+    }
+
     // Setzt die Auswahl-Checkbox aller Zeilen der Alt-Datenpunkt-Liste auf
     // $select — Komfortfunktion, damit man bei vielen Datenpunkten nicht jede
     // Zeile einzeln ankreuzen muss.

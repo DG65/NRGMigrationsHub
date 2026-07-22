@@ -138,6 +138,12 @@
       "values": []
     },
     {
+      "type": "Button",
+      "caption": "Migrationsliste leeren",
+      "confirm": "Alle Zeilen aus der Migrationsliste entfernen?",
+      "onClick": "MIGHUB_ClearMigrations($id);"
+    },
+    {
       "type": "Label",
       "caption": "Wichtig: Archiv und WebFront-Links werden automatisch migriert. Skripte, Events, IPSView-Kacheln, Workflows und Properties anderer Module (die eine Variablen-ID fest referenzieren) NICHT — dafür dient der folgende Scan als Checkliste zur manuellen Prüfung."
     },
