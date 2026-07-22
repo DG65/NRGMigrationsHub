@@ -185,7 +185,14 @@ class MigrationsHub extends IPSModule
     {
         $sourceVariables = $this->NormalizeFormList($sourceVariables);
         $migrations = $this->NormalizeFormList($migrations);
-        $existingOldIDs = array_column($migrations, 'OldVariableID');
+
+        // array_column() setzt Arrays oder Objekte mit öffentlichen Properties
+        // voraus; einzelne Zeilen können hier aber ArrayAccess-Objekte sein —
+        // deshalb per Schleife statt array_column() auslesen.
+        $existingOldIDs = [];
+        foreach ($migrations as $migrationRow) {
+            $existingOldIDs[] = (int) $migrationRow['OldVariableID'];
+        }
 
         foreach ($sourceVariables as $row) {
             if (empty($row['Selected'])) {
@@ -211,7 +218,15 @@ class MigrationsHub extends IPSModule
         if (is_array($value)) {
             return $value;
         }
-        return json_decode(json_encode($value), true) ?? [];
+        // IPSList implementiert Traversable (foreach funktioniert), aber
+        // json_encode() liefert dafür kein brauchbares Array — die Klasse hat
+        // keine öffentlichen Properties und ist nicht JsonSerializable, das
+        // Ergebnis wäre ein leeres Objekt. iterator_to_array() greift stattdessen
+        // direkt auf die Zeilen zu.
+        if ($value instanceof Traversable) {
+            return iterator_to_array($value);
+        }
+        return (array) $value;
     }
 
     // --- Formular: Schritt 3 — Migration ausführen + Plausibilitätsprüfung ---
