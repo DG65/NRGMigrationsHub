@@ -58,15 +58,63 @@ class MigrationsHub extends IPSModule
     public function GetConfigurationForm()
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        foreach ($form['elements'] as &$element) {
+        $scriptChecks = json_decode($this->ReadAttributeString('ScriptChecks'), true);
+        $eventChecks = json_decode($this->ReadAttributeString('EventChecks'), true);
+
+        $elements = [];
+        foreach ($form['elements'] as $element) {
+            $elements[] = $element;
+            // Direkt-Öffnen-Buttons unter die jeweilige Checkliste einfügen:
+            // Listen-Spalten können keine Links darstellen, aber das Element
+            // OpenObjectButton öffnet ein Objekt (Skript/Event) direkt zur
+            // Bearbeitung in der Konsole. Die Buttons entstehen beim Laden des
+            // Formulars — nach einem neuen Scan das Formular einmal neu öffnen,
+            // damit sie zu den aktuellen Funden passen.
             if (($element['name'] ?? '') === 'ScriptChecks') {
-                $element['values'] = json_decode($this->ReadAttributeString('ScriptChecks'), true);
+                $elements[count($elements) - 1]['values'] = $scriptChecks;
+                $panel = $this->BuildOpenButtonsPanel($scriptChecks, 'Skripte direkt öffnen');
+                if ($panel !== null) {
+                    $elements[] = $panel;
+                }
             } elseif (($element['name'] ?? '') === 'EventChecks') {
-                $element['values'] = json_decode($this->ReadAttributeString('EventChecks'), true);
+                $elements[count($elements) - 1]['values'] = $eventChecks;
+                $panel = $this->BuildOpenButtonsPanel($eventChecks, 'Events direkt öffnen');
+                if ($panel !== null) {
+                    $elements[] = $panel;
+                }
             }
         }
-        unset($element);
+        $form['elements'] = $elements;
         return json_encode($form);
+    }
+
+    // Einklappbares Panel mit einem OpenObjectButton je (noch existierendem)
+    // Fundobjekt — dedupliziert, weil dasselbe Skript für mehrere Alt-
+    // Variablen gefunden werden kann, geöffnet werden muss es nur einmal.
+    private function BuildOpenButtonsPanel(array $checks, string $caption): ?array
+    {
+        $buttons = [];
+        $seen = [];
+        foreach ($checks as $row) {
+            $objectID = (int) ($row['ObjectID'] ?? 0);
+            if ($objectID === 0 || isset($seen[$objectID]) || !IPS_ObjectExists($objectID)) {
+                continue;
+            }
+            $seen[$objectID] = true;
+            $buttons[] = [
+                'type' => 'OpenObjectButton',
+                'caption' => IPS_GetName($objectID) . ' (#' . $objectID . ')',
+                'objectID' => $objectID,
+            ];
+        }
+        if ($buttons === []) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel',
+            'caption' => $caption,
+            'items' => $buttons,
+        ];
     }
 
     // onEdit-Handler der beiden Checklisten: schreibt den aktuellen Stand

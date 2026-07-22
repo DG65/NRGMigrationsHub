@@ -154,7 +154,7 @@
     },
     {
       "type": "Label",
-      "caption": "Skript-Funde — Zahnrad-Symbol am Zeilenende öffnet die Bearbeitung, dort führt das Symbol neben dem Skriptfeld direkt zum Skript"
+      "caption": "Skript-Funde — zum Bearbeiten die Buttons unter der Liste nutzen (öffnen das Skript direkt; nach neuem Scan Formular einmal neu öffnen)"
     },
     {
       "type": "List",
@@ -199,7 +199,7 @@
     },
     {
       "type": "Label",
-      "caption": "Event-Funde — Zahnrad-Symbol am Zeilenende öffnet die Bearbeitung, dort führt das Symbol neben dem Eventfeld direkt zum Event"
+      "caption": "Event-Funde — zum Bearbeiten die Buttons unter der Liste nutzen (öffnen das Event direkt; nach neuem Scan Formular einmal neu öffnen)"
     },
     {
       "type": "List",
