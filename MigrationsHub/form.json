@@ -145,7 +145,7 @@
     },
     {
       "type": "Label",
-      "caption": "Wichtig: Archiv und WebFront-Verknüpfungen werden automatisch migriert. Skripte, Ereignisse, IPSView-Kacheln, Ablaufpläne und Einstellungen anderer Module (die eine Variablen-ID fest referenzieren) NICHT — dafür dient die folgende Suche als Prüfliste zur manuellen Kontrolle."
+      "caption": "Wichtig: Archiv und WebFront-Verknüpfungen werden automatisch migriert. Skripte, Ereignisse, IPSView-Kacheln, Workflows (IPSWorkflowEditor) und Einstellungen anderer Module (die eine Variablen-ID fest referenzieren) NICHT — dafür dient die folgende Suche als Prüfliste zur manuellen Kontrolle."
     },
     {
       "type": "Button",

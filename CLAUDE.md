@@ -21,8 +21,14 @@ also *Probelauf* statt *Dry-Run*, *Verknüpfung* statt *Link*, *Ereignis* statt 
 *Schaltfläche* statt *Button*, *Prüfliste* statt *Checkliste*.
 
 Ausgenommen sind **Bezeichner im Code** (Klassen-, Methoden-, Variablen-, Property- und
-Ident-Namen) sowie feststehende IP-Symcon-Begriffe (`SelectVariable`, `WebFront`, `Modbus TCP`),
-weil deren Umbenennung Verträge brechen würde — Idents sind API.
+Ident-Namen), **Formularelementtypen** (`'type' => 'Button'`) sowie feststehende Fach- und
+Produktnamen (`WebFront`, `Modbus TCP`, `IPSView`, `IPSWorkflowEditor`, `SunSpec`, `MPPT`,
+`SOC`) — deren Eindeutschung wäre schwerer verständlich, und Umbenennen bricht Verträge:
+Idents sind API.
+
+Nach einer Ersetzungsrunde den Diff durchsehen: ein Wortwechsel ändert oft das Genus und
+bricht damit den Satz (*einen zuverlässigen Portcheck* → *eine zuverlässige Port-Prüfung*).
+Reines Suchen-und-Ersetzen hinterlässt Grammatikfehler. (Erfahrung aus InverterHub 0.66.5-beta.1.)
 
 ## Besonderheit gegenüber den anderen Hub-Modulen
 
