@@ -73,6 +73,21 @@
       "values": []
     },
     {
+      "type": "RowLayout",
+      "items": [
+        {
+          "type": "Button",
+          "caption": "Alle auswählen",
+          "onClick": "MIGHUB_SetAllSourceVariablesSelected($id, $SourceVariables, true);"
+        },
+        {
+          "type": "Button",
+          "caption": "Alle abwählen",
+          "onClick": "MIGHUB_SetAllSourceVariablesSelected($id, $SourceVariables, false);"
+        }
+      ]
+    },
+    {
       "type": "Button",
       "caption": "Ausgewählte Alt-Datenpunkte → in Migrationsliste übernehmen",
       "onClick": "MIGHUB_AddSourceVariablesToMigrations($id, $SourceVariables, $Migrations, $TargetInstanceID);"
@@ -123,13 +138,18 @@
       "values": []
     },
     {
+      "type": "Button",
+      "caption": "Migration simulieren (Dry-Run — schreibt nichts)",
+      "onClick": "MIGHUB_SimulateMigrations($id, $Migrations);"
+    },
+    {
       "type": "Label",
-      "caption": "Achtung: Der Vorgang überträgt Archivhistorie (AC_ChangeVariableID) und Verknüpfungen unwiderruflich auf die neuen Variablen und kann nicht automatisch rückgängig gemacht werden."
+      "caption": "Achtung: \"Migration jetzt ausführen\" überträgt Archivhistorie (AC_ChangeVariableID) und Verknüpfungen unwiderruflich auf die neuen Variablen und kann nicht automatisch rückgängig gemacht werden. Vorher unbedingt simulieren."
     },
     {
       "type": "CheckBox",
       "name": "Confirmed",
-      "caption": "Ich habe die Zuordnung oben geprüft und bin sicher, dass sie korrekt ist"
+      "caption": "Ich habe die Zuordnung oben geprüft (inkl. Simulation) und bin sicher, dass sie korrekt ist"
     },
     {
       "type": "Button",

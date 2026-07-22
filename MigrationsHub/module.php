@@ -44,16 +44,19 @@ class MigrationsHub extends IPSModule
     // um. Gibt ein Ergebnis-Array zurück (Erfolg/Grund/Details), damit der
     // Aufrufer (Formular oder ein anderes Modul) den Ausgang anzeigen kann
     // statt nur true/false.
-    public function MigrateVariable(int $oldVariableID, int $newVariableID): array
+    // $dryRun=true durchläuft exakt dieselben Prüfungen, schreibt aber nichts:
+    // kein AC_ChangeVariableID, kein AC_SetLoggingStatus, keine Links werden
+    // umgehängt. 'archived'/'relinked' zeigen dann an, was passieren WÜRDE.
+    public function MigrateVariable(int $oldVariableID, int $newVariableID, bool $dryRun = false): array
     {
         if (!IPS_VariableExists($oldVariableID)) {
-            return ['success' => false, 'reason' => 'old variable does not exist', 'archived' => false, 'relinked' => 0];
+            return ['success' => false, 'reason' => 'old variable does not exist', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
         }
         if (!IPS_VariableExists($newVariableID)) {
-            return ['success' => false, 'reason' => 'new variable does not exist', 'archived' => false, 'relinked' => 0];
+            return ['success' => false, 'reason' => 'new variable does not exist', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
         }
         if ($oldVariableID === $newVariableID) {
-            return ['success' => false, 'reason' => 'old and new variable are identical', 'archived' => false, 'relinked' => 0];
+            return ['success' => false, 'reason' => 'old and new variable are identical', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
         }
 
         $archived = false;
@@ -65,26 +68,35 @@ class MigrationsHub extends IPSModule
                 // Wichtig: das prüft tatsächlich vorhandene Werte, nicht nur den
                 // Logging-Status (eine deaktiviert-geloggte Variable kann trotzdem
                 // Altwerte im Archiv haben, siehe MeterHub-Fund #40325).
-                return ['success' => false, 'reason' => 'target variable already has archive history', 'archived' => false, 'relinked' => 0];
+                return ['success' => false, 'reason' => 'target variable already has archive history', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
             }
-            $archived = AC_ChangeVariableID($archiveID, $oldVariableID, $newVariableID);
-            if (!$archived) {
-                return ['success' => false, 'reason' => 'AC_ChangeVariableID failed', 'archived' => false, 'relinked' => 0];
+            if ($dryRun) {
+                $archived = true; // würde übertragen werden
+            } else {
+                $archived = AC_ChangeVariableID($archiveID, $oldVariableID, $newVariableID);
+                if (!$archived) {
+                    return ['success' => false, 'reason' => 'AC_ChangeVariableID failed', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
+                }
+                // Zielvariable nach der Übernahme aktiv weiterloggen lassen — sie
+                // muss vorher nicht zwingend für Logging aktiviert gewesen sein.
+                AC_SetLoggingStatus($archiveID, $newVariableID, true);
+                IPS_ApplyChanges($archiveID);
             }
-            // Zielvariable nach der Übernahme aktiv weiterloggen lassen — sie muss
-            // vorher nicht zwingend für Logging aktiviert gewesen sein.
-            AC_SetLoggingStatus($archiveID, $newVariableID, true);
-            IPS_ApplyChanges($archiveID);
         }
 
+        $links = $this->FindLinksToVariable($oldVariableID);
         $relinked = 0;
-        foreach ($this->FindLinksToVariable($oldVariableID) as $linkID) {
-            if (IPS_SetLinkTargetID($linkID, $newVariableID)) {
-                $relinked++;
+        if ($dryRun) {
+            $relinked = count($links); // würde umgehängt werden
+        } else {
+            foreach ($links as $linkID) {
+                if (IPS_SetLinkTargetID($linkID, $newVariableID)) {
+                    $relinked++;
+                }
             }
         }
 
-        return ['success' => true, 'reason' => '', 'archived' => $archived, 'relinked' => $relinked];
+        return ['success' => true, 'reason' => '', 'archived' => $archived, 'relinked' => $relinked, 'dryRun' => $dryRun];
     }
 
     // Liefert die ArchiveControl-Instanz, in der $variableID geloggt wird,
@@ -254,6 +266,19 @@ class MigrationsHub extends IPSModule
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
     }
 
+    // Setzt die Auswahl-Checkbox aller Zeilen der Alt-Datenpunkt-Liste auf
+    // $select — Komfortfunktion, damit man bei vielen Datenpunkten nicht jede
+    // Zeile einzeln ankreuzen muss.
+    public function SetAllSourceVariablesSelected($sourceVariables, bool $select): void
+    {
+        $sourceVariables = $this->NormalizeFormList($sourceVariables);
+        foreach ($sourceVariables as &$row) {
+            $row['Selected'] = $select;
+        }
+        unset($row);
+        $this->UpdateFormField('SourceVariables', 'values', json_encode($sourceVariables));
+    }
+
     // Form-Felder vom Typ List übergibt IP-Symcon dem Handler als IPSList-
     // Objekt, nicht als PHP-Array — hier auf ein gewöhnliches Array normieren.
     private function NormalizeFormList($value): array
@@ -272,12 +297,25 @@ class MigrationsHub extends IPSModule
         return (array) $value;
     }
 
-    // --- Formular: Schritt 3 — Migration ausführen + Plausibilitätsprüfung ---
+    // --- Formular: Schritt 3 — Simulation, Migration, Plausibilitätsprüfung ---
 
-    // Führt alle Paare der Migrationsliste aus. Der Button im Formular hat
-    // zusätzlich einen nativen Bestätigungsdialog (form.json "confirm"); die
-    // Confirmed-Checkbox ist ein zweites, unabhängiges Sicherheits-Gate, weil
-    // der Vorgang Archivhistorie unwiderruflich überträgt.
+    // Simuliert alle Paare der Migrationsliste (Dry-Run): durchläuft dieselben
+    // Prüfungen wie eine echte Migration, schreibt aber nichts. Damit lässt
+    // sich vorab sehen, welche Paare fehlschlagen würden (z. B. Ziel bereits
+    // archiviert), bevor der unwiderrufliche Schritt ausgeführt wird. Braucht
+    // bewusst keine Confirmed-Checkbox, weil dabei nichts verändert wird.
+    public function SimulateMigrations($migrations): void
+    {
+        [$migrations, $results] = $this->ProcessMigrations($this->NormalizeFormList($migrations), true);
+        $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
+        $this->UpdateFormField('Results', 'values', json_encode($results));
+    }
+
+    // Führt alle Paare der Migrationsliste wirklich aus. Der Button im
+    // Formular hat zusätzlich einen nativen Bestätigungsdialog (form.json
+    // "confirm"); die Confirmed-Checkbox ist ein zweites, unabhängiges
+    // Sicherheits-Gate, weil der Vorgang Archivhistorie unwiderruflich
+    // überträgt.
     public function RunMigrations(bool $confirmed, $migrations): void
     {
         $migrations = $this->NormalizeFormList($migrations);
@@ -295,6 +333,15 @@ class MigrationsHub extends IPSModule
             return;
         }
 
+        [$migrations, $results] = $this->ProcessMigrations($migrations, false);
+        $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
+        $this->UpdateFormField('Results', 'values', json_encode($results));
+    }
+
+    // Gemeinsame Schleife für RunMigrations() und SimulateMigrations() — nur
+    // $dryRun unterscheidet, ob MigrateVariable() tatsächlich schreibt.
+    private function ProcessMigrations(array $migrations, bool $dryRun): array
+    {
         $results = [];
         foreach ($migrations as &$row) {
             $oldID = (int) $row['OldVariableID'];
@@ -302,28 +349,34 @@ class MigrationsHub extends IPSModule
             $oldName = IPS_VariableExists($oldID) ? IPS_GetName($oldID) : (string) $oldID;
             $newName = IPS_VariableExists($newID) ? IPS_GetName($newID) : (string) $newID;
 
-            $result = $this->MigrateVariable($oldID, $newID);
-            $row['Status'] = $result['success'] ? 'migriert' : ('Fehler: ' . $result['reason']);
+            $result = $this->MigrateVariable($oldID, $newID, $dryRun);
+            $statusPrefix = $dryRun ? '[Simulation] ' : '';
+            $row['Status'] = $statusPrefix . ($result['success'] ? ($dryRun ? 'würde migriert' : 'migriert') : ('Fehler: ' . $result['reason']));
 
             // Plausibilitätsprüfung: aktueller Wert alt gegen neu vergleichen.
             // Das ersetzt keine fachliche Prüfung (z. B. Wh/kWh-Zwillinge,
             // Vorzeichenkonvention), zeigt aber offensichtliche Fehlzuordnungen.
+            // Im Dry-Run ist ein Unterschied normal (Archiv wurde ja noch nicht
+            // übertragen) und daher kein Plausibilitätsproblem.
             $oldValue = IPS_VariableExists($oldID) ? GetValueFormatted($oldID) : '';
             $newValue = IPS_VariableExists($newID) ? GetValueFormatted($newID) : '';
+            $plausible = '-';
+            if ($result['success']) {
+                $plausible = $dryRun ? 'n/a (Simulation)' : (($oldValue === $newValue) ? 'ja' : 'bitte prüfen');
+            }
 
             $results[] = [
                 'OldName' => $oldName,
                 'NewName' => $newName,
                 'Success' => $result['success'] ? 'ja' : 'nein',
-                'Reason' => $result['reason'],
+                'Reason' => $statusPrefix . $result['reason'],
                 'OldValue' => $oldValue,
                 'NewValue' => $newValue,
-                'Plausible' => $result['success'] ? (($oldValue === $newValue) ? 'ja' : 'bitte prüfen') : '-',
+                'Plausible' => $plausible,
             ];
         }
         unset($row);
 
-        $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
-        $this->UpdateFormField('Results', 'values', json_encode($results));
+        return [$migrations, $results];
     }
 }
