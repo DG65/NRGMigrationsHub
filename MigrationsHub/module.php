@@ -36,7 +36,12 @@ class MigrationsHub extends IPSModule
         // Stück für Stück abarbeiten kann und der Fortschritt über mehrere
         // Sitzungen hinweg erhalten bleibt, statt bei jedem Formular-Neuöffnen
         // neu anfangen zu müssen.
-        $this->RegisterPropertyString('ManualChecks', '[]');
+        // Getrennt nach Skript/Event (statt einer gemeinsamen Liste), weil sich
+        // damit im Formular je ein SelectScript-/SelectEvent-Feld verwenden
+        // lässt — die haben in der Konsole einen eingebauten "Bearbeiten"-
+        // Knopf, der direkt zum Objekt springt.
+        $this->RegisterPropertyString('ScriptChecks', '[]');
+        $this->RegisterPropertyString('EventChecks', '[]');
     }
 
     public function ApplyChanges()
@@ -305,18 +310,23 @@ class MigrationsHub extends IPSModule
     // prüft und abhakt.
 
     // Durchsucht alle Migrationspaare nach Skript-/Event-Referenzen auf die
-    // jeweilige Alt-Variable und ergänzt neue Funde in der persistenten
-    // Abhak-Liste (ManualChecks) — bereits vorhandene Einträge (inkl. bereits
-    // gesetztem "Erledigt"-Haken) bleiben unangetastet, damit ein erneuter
-    // Scan den Fortschritt nicht zurücksetzt.
-    public function ScanReferences($migrations, $manualChecks): void
+    // jeweilige Alt-Variable und ergänzt neue Funde in den persistenten
+    // Abhak-Listen (ScriptChecks/EventChecks) — bereits vorhandene Einträge
+    // (inkl. bereits gesetztem "Erledigt"-Haken) bleiben unangetastet, damit
+    // ein erneuter Scan den Fortschritt nicht zurücksetzt.
+    public function ScanReferences($migrations, $scriptChecks, $eventChecks): void
     {
         $migrations = $this->NormalizeFormList($migrations);
-        $manualChecks = $this->NormalizeFormList($manualChecks);
+        $scriptChecks = $this->NormalizeFormList($scriptChecks);
+        $eventChecks = $this->NormalizeFormList($eventChecks);
 
-        $existingKeys = [];
-        foreach ($manualChecks as $row) {
-            $existingKeys[$row['OldVariableID'] . '|' . $row['Type'] . '|' . $row['ObjectID']] = true;
+        $existingScriptKeys = [];
+        foreach ($scriptChecks as $row) {
+            $existingScriptKeys[$row['OldVariableID'] . '|' . $row['ObjectID']] = true;
+        }
+        $existingEventKeys = [];
+        foreach ($eventChecks as $row) {
+            $existingEventKeys[$row['OldVariableID'] . '|' . $row['ObjectID']] = true;
         }
 
         foreach ($migrations as $migrationRow) {
@@ -327,39 +337,36 @@ class MigrationsHub extends IPSModule
             $oldName = IPS_GetName($oldID);
 
             foreach ($this->FindScriptReferences($oldID) as $scriptID) {
-                $key = $oldID . '|Skript|' . $scriptID;
-                if (isset($existingKeys[$key])) {
+                $key = $oldID . '|' . $scriptID;
+                if (isset($existingScriptKeys[$key])) {
                     continue;
                 }
-                $existingKeys[$key] = true;
-                $manualChecks[] = [
+                $existingScriptKeys[$key] = true;
+                $scriptChecks[] = [
                     'OldVariableID' => $oldID,
                     'OldName' => $oldName,
-                    'Type' => 'Skript',
                     'ObjectID' => $scriptID,
-                    'ObjectName' => IPS_GetName($scriptID),
                     'Done' => false,
                 ];
             }
 
             foreach ($this->FindEventReferences($oldID) as $eventID) {
-                $key = $oldID . '|Event|' . $eventID;
-                if (isset($existingKeys[$key])) {
+                $key = $oldID . '|' . $eventID;
+                if (isset($existingEventKeys[$key])) {
                     continue;
                 }
-                $existingKeys[$key] = true;
-                $manualChecks[] = [
+                $existingEventKeys[$key] = true;
+                $eventChecks[] = [
                     'OldVariableID' => $oldID,
                     'OldName' => $oldName,
-                    'Type' => 'Event',
                     'ObjectID' => $eventID,
-                    'ObjectName' => IPS_GetName($eventID),
                     'Done' => false,
                 ];
             }
         }
 
-        $this->UpdateFormField('ManualChecks', 'values', json_encode($manualChecks));
+        $this->UpdateFormField('ScriptChecks', 'values', json_encode($scriptChecks));
+        $this->UpdateFormField('EventChecks', 'values', json_encode($eventChecks));
     }
 
     // Textsuche (keine Codeanalyse!) nach der Alt-Variablen-ID als eigenständige

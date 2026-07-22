@@ -144,13 +144,17 @@
     {
       "type": "Button",
       "caption": "Referenzen scannen (Skripte/Events)",
-      "onClick": "MIGHUB_ScanReferences($id, $Migrations, $ManualChecks);"
+      "onClick": "MIGHUB_ScanReferences($id, $Migrations, $ScriptChecks, $EventChecks);"
+    },
+    {
+      "type": "Label",
+      "caption": "Skript-Funde — Klick auf die Zeile öffnet die Auswahl, darin führt das Bearbeiten-Symbol direkt zum Skript"
     },
     {
       "type": "List",
-      "name": "ManualChecks",
-      "caption": "Manuell zu prüfende Fundstellen",
-      "rowCount": 10,
+      "name": "ScriptChecks",
+      "caption": "Skripte mit möglichem Bezug zur Alt-Variable",
+      "rowCount": 8,
       "add": false,
       "delete": true,
       "columns": [
@@ -160,14 +164,12 @@
           "width": "200px"
         },
         {
-          "caption": "Typ",
-          "name": "Type",
-          "width": "100px"
-        },
-        {
-          "caption": "Fundort",
-          "name": "ObjectName",
-          "width": "auto"
+          "caption": "Skript",
+          "name": "ObjectID",
+          "width": "auto",
+          "edit": {
+            "type": "SelectScript"
+          }
         },
         {
           "caption": "Erledigt",
@@ -182,10 +184,46 @@
           "name": "OldVariableID",
           "width": "80px",
           "visible": false
+        }
+      ],
+      "values": []
+    },
+    {
+      "type": "Label",
+      "caption": "Event-Funde — Klick auf die Zeile öffnet die Auswahl, darin führt das Bearbeiten-Symbol direkt zum Event"
+    },
+    {
+      "type": "List",
+      "name": "EventChecks",
+      "caption": "Events, die durch die Alt-Variable ausgelöst werden",
+      "rowCount": 8,
+      "add": false,
+      "delete": true,
+      "columns": [
+        {
+          "caption": "Alte Variable",
+          "name": "OldName",
+          "width": "200px"
         },
         {
-          "caption": "ObjectID",
+          "caption": "Event",
           "name": "ObjectID",
+          "width": "auto",
+          "edit": {
+            "type": "SelectEvent"
+          }
+        },
+        {
+          "caption": "Erledigt",
+          "name": "Done",
+          "width": "100px",
+          "edit": {
+            "type": "CheckBox"
+          }
+        },
+        {
+          "caption": "OldVariableID",
+          "name": "OldVariableID",
           "width": "80px",
           "visible": false
         }
