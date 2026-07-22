@@ -25,6 +25,11 @@ class MigrationsHub extends IPSModule
         // und Status. Property statt Attribut, damit der Nutzer sie im
         // Formular pflegen kann (analog Channels-Liste in GleitenderMittelwert).
         $this->RegisterPropertyString('Migrations', '[]');
+
+        // Aktuell im Formular gewählte Alt-/Neu-Instanz (Schritt 1), damit die
+        // Auswahl über Formular-Neuöffnungen hinweg erhalten bleibt.
+        $this->RegisterPropertyInteger('SourceInstanceID', 0);
+        $this->RegisterPropertyInteger('TargetInstanceID', 0);
     }
 
     public function ApplyChanges()
@@ -33,15 +38,197 @@ class MigrationsHub extends IPSModule
         $this->SetStatus(102);
     }
 
-    // Verknüpft eine alte mit einer neuen Variable und übernimmt, sofern
-    // möglich, deren Archivhistorie per AC_ChangeVariableID. Gibt ein
-    // Ergebnis-Array zurück (Erfolg/Grund), damit der Aufrufer (Formular oder
-    // ein anderes Modul) den Ausgang anzeigen kann statt nur true/false.
+    // Verknüpft eine alte mit einer neuen Variable: übernimmt, sofern möglich,
+    // die Archivhistorie per AC_ChangeVariableID und hängt bestehende Links
+    // (WebFront-Verknüpfungen), die auf die alte Variable zeigen, auf die neue
+    // um. Gibt ein Ergebnis-Array zurück (Erfolg/Grund/Details), damit der
+    // Aufrufer (Formular oder ein anderes Modul) den Ausgang anzeigen kann
+    // statt nur true/false.
     public function MigrateVariable(int $oldVariableID, int $newVariableID): array
     {
-        // TODO: Archiv-Instanz ermitteln, Prüfen ob $newVariableID bereits
-        // geloggt ist (dann AC_ChangeVariableID ablehnen und melden, statt
-        // stillschweigend nichts zu tun), sonst AC_ChangeVariableID aufrufen.
-        return ['success' => false, 'reason' => 'not implemented yet'];
+        if (!IPS_VariableExists($oldVariableID)) {
+            return ['success' => false, 'reason' => 'old variable does not exist', 'archived' => false, 'relinked' => 0];
+        }
+        if (!IPS_VariableExists($newVariableID)) {
+            return ['success' => false, 'reason' => 'new variable does not exist', 'archived' => false, 'relinked' => 0];
+        }
+        if ($oldVariableID === $newVariableID) {
+            return ['success' => false, 'reason' => 'old and new variable are identical', 'archived' => false, 'relinked' => 0];
+        }
+
+        $archived = false;
+        $archiveID = $this->FindArchiveInstance($oldVariableID);
+        if ($archiveID !== 0) {
+            if ($this->HasArchiveHistory($archiveID, $newVariableID)) {
+                // AC_ChangeVariableID funktioniert nur bei "jungfräulichem" Ziel —
+                // ein bereits geloggtes Ziel still zu überschreiben wäre falsch.
+                // Wichtig: das prüft tatsächlich vorhandene Werte, nicht nur den
+                // Logging-Status (eine deaktiviert-geloggte Variable kann trotzdem
+                // Altwerte im Archiv haben, siehe MeterHub-Fund #40325).
+                return ['success' => false, 'reason' => 'target variable already has archive history', 'archived' => false, 'relinked' => 0];
+            }
+            $archived = AC_ChangeVariableID($archiveID, $oldVariableID, $newVariableID);
+            if (!$archived) {
+                return ['success' => false, 'reason' => 'AC_ChangeVariableID failed', 'archived' => false, 'relinked' => 0];
+            }
+            // Zielvariable nach der Übernahme aktiv weiterloggen lassen — sie muss
+            // vorher nicht zwingend für Logging aktiviert gewesen sein.
+            AC_SetLoggingStatus($archiveID, $newVariableID, true);
+            IPS_ApplyChanges($archiveID);
+        }
+
+        $relinked = 0;
+        foreach ($this->FindLinksToVariable($oldVariableID) as $linkID) {
+            if (IPS_SetLinkTargetID($linkID, $newVariableID)) {
+                $relinked++;
+            }
+        }
+
+        return ['success' => true, 'reason' => '', 'archived' => $archived, 'relinked' => $relinked];
+    }
+
+    // Liefert die ArchiveControl-Instanz, in der $variableID geloggt wird,
+    // oder 0, falls die Variable in keinem Archiv geloggt ist.
+    private function FindArchiveInstance(int $variableID): int
+    {
+        foreach (IPS_GetInstanceListByModuleID(self::ARCHIVE_CONTROL_GUID) as $archiveID) {
+            if ($this->IsVariableLogged($archiveID, $variableID)) {
+                return (int) $archiveID;
+            }
+        }
+        return 0;
+    }
+
+    private function IsVariableLogged(int $archiveID, int $variableID): bool
+    {
+        return (bool) AC_GetLoggingStatus($archiveID, $variableID);
+    }
+
+    // Prüft, ob im Archiv tatsächlich schon Werte für $variableID vorliegen —
+    // im Unterschied zu IsVariableLogged() (Logging aktiviert/deaktiviert),
+    // das eine deaktivierte Variable mit vorhandener Altdatenhistorie nicht
+    // erkennen würde.
+    private function HasArchiveHistory(int $archiveID, int $variableID): bool
+    {
+        $values = AC_GetLoggedValues($archiveID, $variableID, 0, 0, 1);
+        return count($values) > 0;
+    }
+
+    // Findet alle Link-Objekte (WebFront-Verknüpfungen) in der gesamten
+    // Objekthierarchie, deren Ziel $variableID ist.
+    private function FindLinksToVariable(int $variableID): array
+    {
+        $linkIDs = [];
+        foreach (IPS_GetObjectIDList() as $objectID) {
+            $object = IPS_GetObject($objectID);
+            if ($object['ObjectType'] === 6 /* Link */ && IPS_GetLink($objectID)['TargetID'] === $variableID) {
+                $linkIDs[] = $objectID;
+            }
+        }
+        return $linkIDs;
+    }
+
+    // GUID des Archive Control-Moduls (fest, von IP-Symcon vorgegeben).
+    private const ARCHIVE_CONTROL_GUID = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
+
+    // --- Formular: Schritt 1+2 — Instanzen wählen, Datenpunkte laden/paaren ---
+
+    // Füllt die beiden Datenpunkt-Listen (Schritt 2) mit den Kindvariablen der
+    // in Schritt 1 gewählten Alt-/Neu-Instanz.
+    public function LoadVariableLists(int $sourceInstanceID, int $targetInstanceID): void
+    {
+        $this->UpdateFormField('SourceVariables', 'values', json_encode($this->GetChildVariableRows($sourceInstanceID)));
+        $this->UpdateFormField('TargetVariables', 'values', json_encode($this->GetChildVariableRows($targetInstanceID)));
+    }
+
+    private function GetChildVariableRows(int $instanceID): array
+    {
+        $rows = [];
+        if ($instanceID === 0 || !IPS_InstanceExists($instanceID)) {
+            return $rows;
+        }
+        foreach (IPS_GetChildrenIDs($instanceID) as $childID) {
+            $object = IPS_GetObject($childID);
+            if ($object['ObjectType'] === 2 /* Variable */) {
+                $rows[] = [
+                    'Selected' => false,
+                    'Ident' => $object['ObjectIdent'],
+                    'Name' => IPS_GetName($childID),
+                    'VariableID' => $childID,
+                ];
+            }
+        }
+        return $rows;
+    }
+
+    // Übernimmt die in Schritt 2 angehakten Datenpunkte paarweise (in der
+    // angezeigten Reihenfolge: 1. angehakter Alt-Datenpunkt mit 1. angehaktem
+    // Neu-Datenpunkt usw.) in die Migrationsliste aus Schritt 3.
+    public function CreatePairs(array $sourceVariables, array $targetVariables, array $migrations): void
+    {
+        $selectedOld = array_values(array_filter($sourceVariables, fn ($row) => $row['Selected']));
+        $selectedNew = array_values(array_filter($targetVariables, fn ($row) => $row['Selected']));
+        $count = min(count($selectedOld), count($selectedNew));
+        for ($i = 0; $i < $count; $i++) {
+            $migrations[] = [
+                'OldVariableID' => (int) $selectedOld[$i]['VariableID'],
+                'NewVariableID' => (int) $selectedNew[$i]['VariableID'],
+                'Status' => 'bereit',
+            ];
+        }
+        $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
+    }
+
+    // --- Formular: Schritt 3 — Migration ausführen + Plausibilitätsprüfung ---
+
+    // Führt alle Paare der Migrationsliste aus. Der Button im Formular hat
+    // zusätzlich einen nativen Bestätigungsdialog (form.json "confirm"); die
+    // Confirmed-Checkbox ist ein zweites, unabhängiges Sicherheits-Gate, weil
+    // der Vorgang Archivhistorie unwiderruflich überträgt.
+    public function RunMigrations(bool $confirmed, array $migrations): void
+    {
+        if (!$confirmed) {
+            $this->UpdateFormField('Results', 'values', json_encode([[
+                'OldName' => '',
+                'NewName' => '',
+                'Success' => 'nein',
+                'Reason' => 'Abgebrochen: Bestätigungs-Checkbox nicht gesetzt',
+                'OldValue' => '',
+                'NewValue' => '',
+                'Plausible' => '-',
+            ]]));
+            return;
+        }
+
+        $results = [];
+        foreach ($migrations as &$row) {
+            $oldID = (int) $row['OldVariableID'];
+            $newID = (int) $row['NewVariableID'];
+            $oldName = IPS_VariableExists($oldID) ? IPS_GetName($oldID) : (string) $oldID;
+            $newName = IPS_VariableExists($newID) ? IPS_GetName($newID) : (string) $newID;
+
+            $result = $this->MigrateVariable($oldID, $newID);
+            $row['Status'] = $result['success'] ? 'migriert' : ('Fehler: ' . $result['reason']);
+
+            // Plausibilitätsprüfung: aktueller Wert alt gegen neu vergleichen.
+            // Das ersetzt keine fachliche Prüfung (z. B. Wh/kWh-Zwillinge,
+            // Vorzeichenkonvention), zeigt aber offensichtliche Fehlzuordnungen.
+            $oldValue = IPS_VariableExists($oldID) ? GetValueFormatted($oldID) : '';
+            $newValue = IPS_VariableExists($newID) ? GetValueFormatted($newID) : '';
+
+            $results[] = [
+                'OldName' => $oldName,
+                'NewName' => $newName,
+                'Success' => $result['success'] ? 'ja' : 'nein',
+                'Reason' => $result['reason'],
+                'OldValue' => $oldValue,
+                'NewValue' => $newValue,
+                'Plausible' => $result['success'] ? (($oldValue === $newValue) ? 'ja' : 'bitte prüfen') : '-',
+            ];
+        }
+        unset($row);
+
+        $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
+        $this->UpdateFormField('Results', 'values', json_encode($results));
     }
 }

@@ -1,0 +1,224 @@
+{
+  "elements": [
+    {
+      "type": "Label",
+      "caption": "Schritt 1: Alt-Instanz (migrieren von) und Neu-Instanz (migrieren nach) wählen"
+    },
+    {
+      "type": "RowLayout",
+      "items": [
+        {
+          "type": "SelectInstance",
+          "name": "SourceInstanceID",
+          "caption": "Alt-Instanz"
+        },
+        {
+          "type": "SelectInstance",
+          "name": "TargetInstanceID",
+          "caption": "Neu-Instanz"
+        }
+      ]
+    },
+    {
+      "type": "Button",
+      "caption": "Datenpunkte laden",
+      "onClick": "MIGHUB_LoadVariableLists($id, $SourceInstanceID, $TargetInstanceID);"
+    },
+    {
+      "type": "Label",
+      "caption": "Schritt 2: Datenpunkte paaren — links und rechts in gleicher Reihenfolge ankreuzen, dann paaren"
+    },
+    {
+      "type": "RowLayout",
+      "items": [
+        {
+          "type": "List",
+          "name": "SourceVariables",
+          "caption": "Alt-Datenpunkte",
+          "rowCount": 10,
+          "add": false,
+          "delete": false,
+          "sort": {
+            "column": "Ident",
+            "direction": "ascending"
+          },
+          "columns": [
+            {
+              "caption": "Auswahl",
+              "name": "Selected",
+              "width": "80px",
+              "edit": {
+                "type": "CheckBox"
+              }
+            },
+            {
+              "caption": "Ident",
+              "name": "Ident",
+              "width": "200px"
+            },
+            {
+              "caption": "Name",
+              "name": "Name",
+              "width": "auto"
+            },
+            {
+              "caption": "VariableID",
+              "name": "VariableID",
+              "width": "100px",
+              "visible": false
+            }
+          ],
+          "values": []
+        },
+        {
+          "type": "List",
+          "name": "TargetVariables",
+          "caption": "Neu-Datenpunkte",
+          "rowCount": 10,
+          "add": false,
+          "delete": false,
+          "sort": {
+            "column": "Ident",
+            "direction": "ascending"
+          },
+          "columns": [
+            {
+              "caption": "Auswahl",
+              "name": "Selected",
+              "width": "80px",
+              "edit": {
+                "type": "CheckBox"
+              }
+            },
+            {
+              "caption": "Ident",
+              "name": "Ident",
+              "width": "200px"
+            },
+            {
+              "caption": "Name",
+              "name": "Name",
+              "width": "auto"
+            },
+            {
+              "caption": "VariableID",
+              "name": "VariableID",
+              "width": "100px",
+              "visible": false
+            }
+          ],
+          "values": []
+        }
+      ]
+    },
+    {
+      "type": "Button",
+      "caption": "Ausgewählte Datenpunkte paaren → in Migrationsliste übernehmen",
+      "onClick": "MIGHUB_CreatePairs($id, $SourceVariables, $TargetVariables, $Migrations);"
+    },
+    {
+      "type": "Label",
+      "caption": "Schritt 3: Migrationsliste prüfen (Paare können hier noch angepasst oder entfernt werden)"
+    },
+    {
+      "type": "List",
+      "name": "Migrations",
+      "caption": "Zu migrierende Variablenpaare",
+      "rowCount": 10,
+      "add": true,
+      "delete": true,
+      "columns": [
+        {
+          "caption": "Alte Variable",
+          "name": "OldVariableID",
+          "width": "300px",
+          "add": 0,
+          "edit": {
+            "type": "SelectVariable"
+          }
+        },
+        {
+          "caption": "Neue Variable",
+          "name": "NewVariableID",
+          "width": "300px",
+          "add": 0,
+          "edit": {
+            "type": "SelectVariable"
+          }
+        },
+        {
+          "caption": "Status",
+          "name": "Status",
+          "width": "auto",
+          "add": ""
+        }
+      ],
+      "values": []
+    },
+    {
+      "type": "Label",
+      "caption": "Achtung: Der Vorgang überträgt Archivhistorie (AC_ChangeVariableID) und Verknüpfungen unwiderruflich auf die neuen Variablen und kann nicht automatisch rückgängig gemacht werden."
+    },
+    {
+      "type": "CheckBox",
+      "name": "Confirmed",
+      "caption": "Ich habe die Zuordnung oben geprüft und bin sicher, dass sie korrekt ist"
+    },
+    {
+      "type": "Button",
+      "caption": "Migration jetzt ausführen",
+      "confirm": "Dieser Vorgang überträgt Archivhistorie und Verknüpfungen unwiderruflich auf die neuen Variablen. Wirklich fortfahren?",
+      "onClick": "MIGHUB_RunMigrations($id, $Confirmed, $Migrations);"
+    },
+    {
+      "type": "Label",
+      "caption": "Ergebnis / Plausibilitätsprüfung (aktueller Wert alt vs. neu nach der Migration)"
+    },
+    {
+      "type": "List",
+      "name": "Results",
+      "caption": "Ergebnisse",
+      "rowCount": 10,
+      "add": false,
+      "delete": false,
+      "columns": [
+        {
+          "caption": "Alte Variable",
+          "name": "OldName",
+          "width": "200px"
+        },
+        {
+          "caption": "Neue Variable",
+          "name": "NewName",
+          "width": "200px"
+        },
+        {
+          "caption": "Erfolg",
+          "name": "Success",
+          "width": "80px"
+        },
+        {
+          "caption": "Grund",
+          "name": "Reason",
+          "width": "200px"
+        },
+        {
+          "caption": "Wert alt",
+          "name": "OldValue",
+          "width": "120px"
+        },
+        {
+          "caption": "Wert neu",
+          "name": "NewValue",
+          "width": "120px"
+        },
+        {
+          "caption": "Plausibel",
+          "name": "Plausible",
+          "width": "100px"
+        }
+      ],
+      "values": []
+    }
+  ]
+}
