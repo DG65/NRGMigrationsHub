@@ -143,19 +143,33 @@ class MigrationsHub extends IPSModule
 
     private function GetChildVariableRows(int $instanceID): array
     {
-        $rows = [];
         if ($instanceID === 0 || !IPS_InstanceExists($instanceID)) {
-            return $rows;
+            return [];
         }
-        foreach (IPS_GetChildrenIDs($instanceID) as $childID) {
+        return $this->CollectVariableRows($instanceID, '');
+    }
+
+    // Sammelt Variablen rekursiv über Unterkategorien hinweg — viele Hub-
+    // Module (z. B. GoodweET) legen ihre Datenpunkte nicht als direkte
+    // Kindvariablen der Instanz an, sondern gruppiert in Kategorien wie
+    // "PV / MPPT", "Netz", "Batterie 1" usw.
+    private function CollectVariableRows(int $parentID, string $pathPrefix): array
+    {
+        $rows = [];
+        foreach (IPS_GetChildrenIDs($parentID) as $childID) {
             $object = IPS_GetObject($childID);
             if ($object['ObjectType'] === 2 /* Variable */) {
                 $rows[] = [
                     'Selected' => false,
                     'Ident' => $object['ObjectIdent'],
-                    'Name' => IPS_GetName($childID),
+                    'Name' => ($pathPrefix !== '' ? $pathPrefix . ' / ' : '') . IPS_GetName($childID),
                     'VariableID' => $childID,
                 ];
+            } elseif ($object['ObjectType'] === 0 /* Category */) {
+                $rows = array_merge(
+                    $rows,
+                    $this->CollectVariableRows($childID, ($pathPrefix !== '' ? $pathPrefix . ' / ' : '') . IPS_GetName($childID))
+                );
             }
         }
         return $rows;
