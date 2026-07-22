@@ -154,7 +154,7 @@
     },
     {
       "type": "Label",
-      "caption": "Skript-Funde — Klick auf die Zeile öffnet die Auswahl, darin führt das Bearbeiten-Symbol direkt zum Skript"
+      "caption": "Skript-Funde — Zahnrad-Symbol am Zeilenende öffnet die Bearbeitung, dort führt das Symbol neben dem Skriptfeld direkt zum Skript"
     },
     {
       "type": "List",
@@ -199,7 +199,7 @@
     },
     {
       "type": "Label",
-      "caption": "Event-Funde — Klick auf die Zeile öffnet die Auswahl, darin führt das Bearbeiten-Symbol direkt zum Event"
+      "caption": "Event-Funde — Zahnrad-Symbol am Zeilenende öffnet die Bearbeitung, dort führt das Symbol neben dem Eventfeld direkt zum Event"
     },
     {
       "type": "List",
