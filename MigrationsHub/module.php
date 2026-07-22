@@ -131,14 +131,13 @@ class MigrationsHub extends IPSModule
     // GUID des Archive Control-Moduls (fest, von IP-Symcon vorgegeben).
     private const ARCHIVE_CONTROL_GUID = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
 
-    // --- Formular: Schritt 1+2 — Instanzen wählen, Datenpunkte laden/paaren ---
+    // --- Formular: Schritt 1+2 — Alt-Instanz wählen, Datenpunkte übernehmen ---
 
-    // Füllt die beiden Datenpunkt-Listen (Schritt 2) mit den Kindvariablen der
-    // in Schritt 1 gewählten Alt-/Neu-Instanz.
-    public function LoadVariableLists(int $sourceInstanceID, int $targetInstanceID): void
+    // Füllt die Alt-Datenpunkt-Liste (Schritt 2) mit den Kindvariablen der in
+    // Schritt 1 gewählten Alt-Instanz.
+    public function LoadSourceVariables(int $sourceInstanceID): void
     {
         $this->UpdateFormField('SourceVariables', 'values', json_encode($this->GetChildVariableRows($sourceInstanceID)));
-        $this->UpdateFormField('TargetVariables', 'values', json_encode($this->GetChildVariableRows($targetInstanceID)));
     }
 
     private function GetChildVariableRows(int $instanceID): array
@@ -175,22 +174,44 @@ class MigrationsHub extends IPSModule
         return $rows;
     }
 
-    // Übernimmt die in Schritt 2 angehakten Datenpunkte paarweise (in der
-    // angezeigten Reihenfolge: 1. angehakter Alt-Datenpunkt mit 1. angehaktem
-    // Neu-Datenpunkt usw.) in die Migrationsliste aus Schritt 3.
-    public function CreatePairs(array $sourceVariables, array $targetVariables, array $migrations): void
+    // Übernimmt die in Schritt 2 angehakten Alt-Datenpunkte als neue Zeilen in
+    // die Migrationsliste (Schritt 3) — jeweils mit leerem Ziel. Die passende
+    // neue Variable wählt der Nutzer dort über den durchsuchbaren
+    // SelectVariable-Dialog je Zeile; das ist robuster als ein Order-Matching
+    // über zwei parallel angehakte Listen, das bei vielen/anders benannten
+    // Datenpunkten (z. B. unterschiedliche Ident-Schemata alt/neu) leicht zu
+    // Fehlzuordnungen führt.
+    public function AddSourceVariablesToMigrations($sourceVariables, $migrations): void
     {
-        $selectedOld = array_values(array_filter($sourceVariables, fn ($row) => $row['Selected']));
-        $selectedNew = array_values(array_filter($targetVariables, fn ($row) => $row['Selected']));
-        $count = min(count($selectedOld), count($selectedNew));
-        for ($i = 0; $i < $count; $i++) {
+        $sourceVariables = $this->NormalizeFormList($sourceVariables);
+        $migrations = $this->NormalizeFormList($migrations);
+        $existingOldIDs = array_column($migrations, 'OldVariableID');
+
+        foreach ($sourceVariables as $row) {
+            if (empty($row['Selected'])) {
+                continue;
+            }
+            $oldID = (int) $row['VariableID'];
+            if (in_array($oldID, $existingOldIDs, true)) {
+                continue;
+            }
             $migrations[] = [
-                'OldVariableID' => (int) $selectedOld[$i]['VariableID'],
-                'NewVariableID' => (int) $selectedNew[$i]['VariableID'],
-                'Status' => 'bereit',
+                'OldVariableID' => $oldID,
+                'NewVariableID' => 0,
+                'Status' => 'Ziel wählen',
             ];
         }
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
+    }
+
+    // Form-Felder vom Typ List übergibt IP-Symcon dem Handler als IPSList-
+    // Objekt, nicht als PHP-Array — hier auf ein gewöhnliches Array normieren.
+    private function NormalizeFormList($value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        return json_decode(json_encode($value), true) ?? [];
     }
 
     // --- Formular: Schritt 3 — Migration ausführen + Plausibilitätsprüfung ---
@@ -199,8 +220,10 @@ class MigrationsHub extends IPSModule
     // zusätzlich einen nativen Bestätigungsdialog (form.json "confirm"); die
     // Confirmed-Checkbox ist ein zweites, unabhängiges Sicherheits-Gate, weil
     // der Vorgang Archivhistorie unwiderruflich überträgt.
-    public function RunMigrations(bool $confirmed, array $migrations): void
+    public function RunMigrations(bool $confirmed, $migrations): void
     {
+        $migrations = $this->NormalizeFormList($migrations);
+
         if (!$confirmed) {
             $this->UpdateFormField('Results', 'values', json_encode([[
                 'OldName' => '',

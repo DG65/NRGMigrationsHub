@@ -15,110 +15,66 @@
         {
           "type": "SelectInstance",
           "name": "TargetInstanceID",
-          "caption": "Neu-Instanz"
+          "caption": "Neu-Instanz (nur zur Orientierung — Zielvariable wird in Schritt 3 direkt gesucht)"
         }
       ]
     },
     {
       "type": "Button",
-      "caption": "Datenpunkte laden",
-      "onClick": "MIGHUB_LoadVariableLists($id, $SourceInstanceID, $TargetInstanceID);"
+      "caption": "Alt-Datenpunkte laden",
+      "onClick": "MIGHUB_LoadSourceVariables($id, $SourceInstanceID);"
     },
     {
       "type": "Label",
-      "caption": "Schritt 2: Datenpunkte paaren — links und rechts in gleicher Reihenfolge ankreuzen, dann paaren"
+      "caption": "Schritt 2: gewünschte Alt-Datenpunkte ankreuzen und übernehmen"
     },
     {
-      "type": "RowLayout",
-      "items": [
+      "type": "List",
+      "name": "SourceVariables",
+      "caption": "Alt-Datenpunkte",
+      "rowCount": 10,
+      "add": false,
+      "delete": false,
+      "sort": {
+        "column": "Ident",
+        "direction": "ascending"
+      },
+      "columns": [
         {
-          "type": "List",
-          "name": "SourceVariables",
-          "caption": "Alt-Datenpunkte",
-          "rowCount": 10,
-          "add": false,
-          "delete": false,
-          "sort": {
-            "column": "Ident",
-            "direction": "ascending"
-          },
-          "columns": [
-            {
-              "caption": "Auswahl",
-              "name": "Selected",
-              "width": "80px",
-              "edit": {
-                "type": "CheckBox"
-              }
-            },
-            {
-              "caption": "Ident",
-              "name": "Ident",
-              "width": "200px"
-            },
-            {
-              "caption": "Name",
-              "name": "Name",
-              "width": "auto"
-            },
-            {
-              "caption": "VariableID",
-              "name": "VariableID",
-              "width": "100px",
-              "visible": false
-            }
-          ],
-          "values": []
+          "caption": "Auswahl",
+          "name": "Selected",
+          "width": "80px",
+          "edit": {
+            "type": "CheckBox"
+          }
         },
         {
-          "type": "List",
-          "name": "TargetVariables",
-          "caption": "Neu-Datenpunkte",
-          "rowCount": 10,
-          "add": false,
-          "delete": false,
-          "sort": {
-            "column": "Ident",
-            "direction": "ascending"
-          },
-          "columns": [
-            {
-              "caption": "Auswahl",
-              "name": "Selected",
-              "width": "80px",
-              "edit": {
-                "type": "CheckBox"
-              }
-            },
-            {
-              "caption": "Ident",
-              "name": "Ident",
-              "width": "200px"
-            },
-            {
-              "caption": "Name",
-              "name": "Name",
-              "width": "auto"
-            },
-            {
-              "caption": "VariableID",
-              "name": "VariableID",
-              "width": "100px",
-              "visible": false
-            }
-          ],
-          "values": []
+          "caption": "Ident",
+          "name": "Ident",
+          "width": "200px"
+        },
+        {
+          "caption": "Name",
+          "name": "Name",
+          "width": "auto"
+        },
+        {
+          "caption": "VariableID",
+          "name": "VariableID",
+          "width": "100px",
+          "visible": false
         }
-      ]
+      ],
+      "values": []
     },
     {
       "type": "Button",
-      "caption": "Ausgewählte Datenpunkte paaren → in Migrationsliste übernehmen",
-      "onClick": "MIGHUB_CreatePairs($id, $SourceVariables, $TargetVariables, $Migrations);"
+      "caption": "Ausgewählte Alt-Datenpunkte → in Migrationsliste übernehmen",
+      "onClick": "MIGHUB_AddSourceVariablesToMigrations($id, $SourceVariables, $Migrations);"
     },
     {
       "type": "Label",
-      "caption": "Schritt 3: Migrationsliste prüfen (Paare können hier noch angepasst oder entfernt werden)"
+      "caption": "Schritt 3: je Zeile die passende neue Variable über das Suchfeld wählen (Klick auf die Zeile → Variablenauswahl), dann prüfen"
     },
     {
       "type": "List",
