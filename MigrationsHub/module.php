@@ -137,22 +137,26 @@ class MigrationsHub extends IPSModule
     // Schritt 1 gewählten Alt-Instanz.
     public function LoadSourceVariables(int $sourceInstanceID): void
     {
-        $this->UpdateFormField('SourceVariables', 'values', json_encode($this->GetChildVariableRows($sourceInstanceID)));
+        $linkCounts = $this->BuildLinkCountMap();
+        $this->UpdateFormField('SourceVariables', 'values', json_encode($this->GetChildVariableRows($sourceInstanceID, $linkCounts)));
     }
 
-    private function GetChildVariableRows(int $instanceID): array
+    private function GetChildVariableRows(int $instanceID, array $linkCounts = []): array
     {
         if ($instanceID === 0 || !IPS_InstanceExists($instanceID)) {
             return [];
         }
-        return $this->CollectVariableRows($instanceID, '');
+        return $this->CollectVariableRows($instanceID, '', $linkCounts);
     }
 
     // Sammelt Variablen rekursiv über Unterkategorien hinweg — viele Hub-
     // Module (z. B. GoodweET) legen ihre Datenpunkte nicht als direkte
     // Kindvariablen der Instanz an, sondern gruppiert in Kategorien wie
-    // "PV / MPPT", "Netz", "Batterie 1" usw.
-    private function CollectVariableRows(int $parentID, string $pathPrefix): array
+    // "PV / MPPT", "Netz", "Batterie 1" usw. $linkCounts (VariableID => Anzahl
+    // Links) ist optional — nur mit dieser Map wird die Referenzen-Spalte
+    // gefüllt (siehe BuildLinkCountMap()); ohne sie bleibt sie leer, z. B. beim
+    // reinen Ident-Abgleich für Zielvorschläge, wo sie nicht gebraucht wird.
+    private function CollectVariableRows(int $parentID, string $pathPrefix, array $linkCounts = []): array
     {
         $rows = [];
         foreach (IPS_GetChildrenIDs($parentID) as $childID) {
@@ -163,28 +167,65 @@ class MigrationsHub extends IPSModule
                     'Ident' => $object['ObjectIdent'],
                     'Name' => ($pathPrefix !== '' ? $pathPrefix . ' / ' : '') . IPS_GetName($childID),
                     'VariableID' => $childID,
+                    'References' => $linkCounts === [] ? '' : $this->DescribeReferences($childID, $linkCounts),
                 ];
             } elseif ($object['ObjectType'] === 0 /* Category */) {
                 $rows = array_merge(
                     $rows,
-                    $this->CollectVariableRows($childID, ($pathPrefix !== '' ? $pathPrefix . ' / ' : '') . IPS_GetName($childID))
+                    $this->CollectVariableRows($childID, ($pathPrefix !== '' ? $pathPrefix . ' / ' : '') . IPS_GetName($childID), $linkCounts)
                 );
             }
         }
         return $rows;
     }
 
+    // Baut in einem einzigen Durchlauf über den gesamten Objektbaum eine Map
+    // VariableID => Anzahl Links, die auf sie zeigen — deutlich schneller als
+    // pro Variable erneut den kompletten Baum zu durchsuchen (FindLinksToVariable
+    // würde das bei z. B. 100 Datenpunkten 100-mal tun).
+    private function BuildLinkCountMap(): array
+    {
+        $map = [];
+        foreach (IPS_GetObjectIDList() as $objectID) {
+            $object = IPS_GetObject($objectID);
+            if ($object['ObjectType'] === 6 /* Link */) {
+                $targetID = IPS_GetLink($objectID)['TargetID'];
+                $map[$targetID] = ($map[$targetID] ?? 0) + 1;
+            }
+        }
+        return $map;
+    }
+
+    // Kurzbeschreibung der Referenzen einer Variable für die Einschätzung vor
+    // der Migration: ob sie archiviert wird und wie viele WebFront-Links
+    // (Kacheln/Verknüpfungen) auf sie zeigen.
+    private function DescribeReferences(int $variableID, array $linkCounts): string
+    {
+        $parts = [];
+        $archiveID = $this->FindArchiveInstance($variableID);
+        $parts[] = $archiveID !== 0 ? 'archiviert' : 'nicht archiviert';
+        $linkCount = $linkCounts[$variableID] ?? 0;
+        $parts[] = $linkCount . ' Link' . ($linkCount === 1 ? '' : 's');
+        return implode(', ', $parts);
+    }
+
     // Übernimmt die in Schritt 2 angehakten Alt-Datenpunkte als neue Zeilen in
-    // die Migrationsliste (Schritt 3) — jeweils mit leerem Ziel. Die passende
-    // neue Variable wählt der Nutzer dort über den durchsuchbaren
-    // SelectVariable-Dialog je Zeile; das ist robuster als ein Order-Matching
-    // über zwei parallel angehakte Listen, das bei vielen/anders benannten
-    // Datenpunkten (z. B. unterschiedliche Ident-Schemata alt/neu) leicht zu
-    // Fehlzuordnungen führt.
-    public function AddSourceVariablesToMigrations($sourceVariables, $migrations): void
+    // die Migrationsliste (Schritt 3). Ist die Neu-Instanz aus Schritt 1
+    // gesetzt, wird als Zielvorschlag die Variable mit demselben Ident dort
+    // vorbelegt (nur ein Vorschlag, keine automatische Zuordnung — Status
+    // macht das kenntlich und der Nutzer muss ihn trotzdem prüfen/bestätigen).
+    // Ohne Treffer bleibt das Ziel leer und wird über den durchsuchbaren
+    // SelectVariable-Dialog je Zeile gewählt.
+    public function AddSourceVariablesToMigrations($sourceVariables, $migrations, int $targetInstanceID = 0): void
     {
         $sourceVariables = $this->NormalizeFormList($sourceVariables);
         $migrations = $this->NormalizeFormList($migrations);
+        $linkCounts = $this->BuildLinkCountMap();
+
+        $targetByIdent = [];
+        foreach ($this->GetChildVariableRows($targetInstanceID) as $targetRow) {
+            $targetByIdent[$targetRow['Ident']] = (int) $targetRow['VariableID'];
+        }
 
         // array_column() setzt Arrays oder Objekte mit öffentlichen Properties
         // voraus; einzelne Zeilen können hier aber ArrayAccess-Objekte sein —
@@ -202,10 +243,12 @@ class MigrationsHub extends IPSModule
             if (in_array($oldID, $existingOldIDs, true)) {
                 continue;
             }
+            $suggestedNewID = $targetByIdent[$row['Ident']] ?? 0;
             $migrations[] = [
                 'OldVariableID' => $oldID,
-                'NewVariableID' => 0,
-                'Status' => 'Ziel wählen',
+                'NewVariableID' => $suggestedNewID,
+                'Status' => $suggestedNewID !== 0 ? 'Vorschlag anhand Ident — bitte prüfen' : 'Ziel wählen',
+                'References' => $this->DescribeReferences($oldID, $linkCounts),
             ];
         }
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));

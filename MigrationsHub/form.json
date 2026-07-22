@@ -59,6 +59,11 @@
           "width": "auto"
         },
         {
+          "caption": "Referenzen",
+          "name": "References",
+          "width": "160px"
+        },
+        {
           "caption": "VariableID",
           "name": "VariableID",
           "width": "100px",
@@ -70,11 +75,11 @@
     {
       "type": "Button",
       "caption": "Ausgewählte Alt-Datenpunkte → in Migrationsliste übernehmen",
-      "onClick": "MIGHUB_AddSourceVariablesToMigrations($id, $SourceVariables, $Migrations);"
+      "onClick": "MIGHUB_AddSourceVariablesToMigrations($id, $SourceVariables, $Migrations, $TargetInstanceID);"
     },
     {
       "type": "Label",
-      "caption": "Schritt 3: je Zeile die passende neue Variable über das Suchfeld wählen (Klick auf die Zeile → Variablenauswahl), dann prüfen"
+      "caption": "Schritt 3: Zielvorschläge (anhand gleichem Ident) prüfen, fehlende Ziele über das Suchfeld wählen (Klick auf die Zeile → Variablenauswahl)"
     },
     {
       "type": "List",
@@ -105,6 +110,12 @@
         {
           "caption": "Status",
           "name": "Status",
+          "width": "200px",
+          "add": ""
+        },
+        {
+          "caption": "Referenzen (Alt-Variable)",
+          "name": "References",
           "width": "auto",
           "add": ""
         }
