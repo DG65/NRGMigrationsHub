@@ -12,6 +12,18 @@ Sitzungen** gearbeitet:
 - **ChargerHub**: Wallboxen per Modbus TCP — https://github.com/DG65/ChargerHub
 - **EMS**: koordinierende Instanz — https://github.com/DG65/EMS
 
+## Sprachregel (Verbund-Vertrag, gilt für alle Module)
+
+Alles, was der Nutzer zu sehen bekommt, ist **deutsch**: Formularbeschriftungen, Hinweis- und
+Fehlertexte, Statuswerte, Rückgabe-Texte wie `reason`, Log-Meldungen, Variablen- und
+Profilnamen, Dokumentation. Keine englischen Sätze, keine vermeidbaren Anglizismen —
+also *Probelauf* statt *Dry-Run*, *Verknüpfung* statt *Link*, *Ereignis* statt *Event*,
+*Schaltfläche* statt *Button*, *Prüfliste* statt *Checkliste*.
+
+Ausgenommen sind **Bezeichner im Code** (Klassen-, Methoden-, Variablen-, Property- und
+Ident-Namen) sowie feststehende IP-Symcon-Begriffe (`SelectVariable`, `WebFront`, `Modbus TCP`),
+weil deren Umbenennung Verträge brechen würde — Idents sind API.
+
 ## Besonderheit gegenüber den anderen Hub-Modulen
 
 MigrationsHub ist **kein** Live-Datenanbieter wie InverterHub/MeterHub/ChargerHub, sondern ein

@@ -78,7 +78,7 @@ class MigrationsHub extends IPSModule
                 }
             } elseif (($element['name'] ?? '') === 'EventChecks') {
                 $elements[count($elements) - 1]['values'] = $eventChecks;
-                $panel = $this->BuildOpenButtonsPanel($eventChecks, 'Events direkt öffnen');
+                $panel = $this->BuildOpenButtonsPanel($eventChecks, 'Ereignisse direkt öffnen');
                 if ($panel !== null) {
                     $elements[] = $panel;
                 }
@@ -181,13 +181,13 @@ class MigrationsHub extends IPSModule
     public function MigrateVariable(int $oldVariableID, int $newVariableID, bool $dryRun = false): array
     {
         if (!IPS_VariableExists($oldVariableID)) {
-            return ['success' => false, 'reason' => 'old variable does not exist', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
+            return ['success' => false, 'reason' => 'Alte Variable existiert nicht', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
         }
         if (!IPS_VariableExists($newVariableID)) {
-            return ['success' => false, 'reason' => 'new variable does not exist', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
+            return ['success' => false, 'reason' => 'Neue Variable existiert nicht', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
         }
         if ($oldVariableID === $newVariableID) {
-            return ['success' => false, 'reason' => 'old and new variable are identical', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
+            return ['success' => false, 'reason' => 'Alte und neue Variable sind identisch', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
         }
 
         $archived = false;
@@ -199,14 +199,14 @@ class MigrationsHub extends IPSModule
                 // Wichtig: das prüft tatsächlich vorhandene Werte, nicht nur den
                 // Logging-Status (eine deaktiviert-geloggte Variable kann trotzdem
                 // Altwerte im Archiv haben, siehe MeterHub-Fund #40325).
-                return ['success' => false, 'reason' => 'target variable already has archive history', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
+                return ['success' => false, 'reason' => 'Zielvariable hat bereits Archivhistorie', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
             }
             if ($dryRun) {
                 $archived = true; // würde übertragen werden
             } else {
                 $archived = AC_ChangeVariableID($archiveID, $oldVariableID, $newVariableID);
                 if (!$archived) {
-                    return ['success' => false, 'reason' => 'AC_ChangeVariableID failed', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
+                    return ['success' => false, 'reason' => 'AC_ChangeVariableID fehlgeschlagen', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
                 }
                 // Zielvariable nach der Übernahme aktiv weiterloggen lassen — sie
                 // muss vorher nicht zwingend für Logging aktiviert gewesen sein.
@@ -358,7 +358,7 @@ class MigrationsHub extends IPSModule
         $archiveID = $this->FindArchiveInstance($variableID);
         $parts[] = $archiveID !== 0 ? 'archiviert' : 'nicht archiviert';
         $linkCount = $linkCounts[$variableID] ?? 0;
-        $parts[] = $linkCount . ' Link' . ($linkCount === 1 ? '' : 's');
+        $parts[] = $linkCount . ($linkCount === 1 ? ' Verknüpfung' : ' Verknüpfungen');
         return implode(', ', $parts);
     }
 
@@ -578,7 +578,7 @@ class MigrationsHub extends IPSModule
                 'OldName' => '',
                 'NewName' => '',
                 'Success' => 'nein',
-                'Reason' => 'Abgebrochen: Bestätigungs-Checkbox nicht gesetzt',
+                'Reason' => 'Abgebrochen: Bestätigungsschalter nicht gesetzt',
                 'OldValue' => '',
                 'NewValue' => '',
                 'Plausible' => '-',
@@ -615,7 +615,7 @@ class MigrationsHub extends IPSModule
             $newValue = IPS_VariableExists($newID) ? GetValueFormatted($newID) : '';
             $plausible = '-';
             if ($result['success']) {
-                $plausible = $dryRun ? 'n/a (Simulation)' : (($oldValue === $newValue) ? 'ja' : 'bitte prüfen');
+                $plausible = $dryRun ? 'entfällt (Simulation)' : (($oldValue === $newValue) ? 'ja' : 'bitte prüfen');
             }
 
             $results[] = [

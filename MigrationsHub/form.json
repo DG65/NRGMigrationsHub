@@ -145,16 +145,16 @@
     },
     {
       "type": "Label",
-      "caption": "Wichtig: Archiv und WebFront-Links werden automatisch migriert. Skripte, Events, IPSView-Kacheln, Workflows und Properties anderer Module (die eine Variablen-ID fest referenzieren) NICHT — dafür dient der folgende Scan als Checkliste zur manuellen Prüfung."
+      "caption": "Wichtig: Archiv und WebFront-Verknüpfungen werden automatisch migriert. Skripte, Ereignisse, IPSView-Kacheln, Ablaufpläne und Einstellungen anderer Module (die eine Variablen-ID fest referenzieren) NICHT — dafür dient die folgende Suche als Prüfliste zur manuellen Kontrolle."
     },
     {
       "type": "Button",
-      "caption": "Referenzen scannen (Skripte/Events)",
+      "caption": "Referenzen suchen (Skripte/Ereignisse)",
       "onClick": "MIGHUB_ScanReferences($id, $Migrations);"
     },
     {
       "type": "Label",
-      "caption": "Skript-Funde — zum Bearbeiten die Buttons unter der Liste nutzen (öffnen das Skript direkt; nach neuem Scan Formular einmal neu öffnen)"
+      "caption": "Skript-Funde — zum Bearbeiten die Schaltflächen unter der Liste nutzen (öffnen das Skript direkt; nach erneuter Suche das Formular einmal neu öffnen)"
     },
     {
       "type": "List",
@@ -199,12 +199,12 @@
     },
     {
       "type": "Label",
-      "caption": "Event-Funde — zum Bearbeiten die Buttons unter der Liste nutzen (öffnen das Event direkt; nach neuem Scan Formular einmal neu öffnen)"
+      "caption": "Ereignis-Funde — zum Bearbeiten die Schaltflächen unter der Liste nutzen (öffnen das Ereignis direkt; nach erneuter Suche das Formular einmal neu öffnen)"
     },
     {
       "type": "List",
       "name": "EventChecks",
-      "caption": "Events, die durch die Alt-Variable ausgelöst werden",
+      "caption": "Ereignisse, die durch die Alt-Variable ausgelöst werden",
       "rowCount": 8,
       "add": false,
       "delete": true,
@@ -217,7 +217,7 @@
           "add": ""
         },
         {
-          "caption": "Event",
+          "caption": "Ereignis",
           "name": "ObjectID",
           "width": "auto",
           "edit": {
@@ -244,7 +244,7 @@
     },
     {
       "type": "Button",
-      "caption": "Migration simulieren (Dry-Run — schreibt nichts)",
+      "caption": "Migration simulieren (Probelauf — schreibt nichts)",
       "onClick": "MIGHUB_SimulateMigrations($id, $Migrations);"
     },
     {
