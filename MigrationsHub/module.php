@@ -119,7 +119,7 @@ class MigrationsHub extends IPSModule
     private function FindLinksToVariable(int $variableID): array
     {
         $linkIDs = [];
-        foreach (IPS_GetObjectIDList() as $objectID) {
+        foreach (IPS_GetObjectList() as $objectID) {
             $object = IPS_GetObject($objectID);
             if ($object['ObjectType'] === 6 /* Link */ && IPS_GetLink($objectID)['TargetID'] === $variableID) {
                 $linkIDs[] = $objectID;
@@ -186,7 +186,7 @@ class MigrationsHub extends IPSModule
     private function BuildLinkCountMap(): array
     {
         $map = [];
-        foreach (IPS_GetObjectIDList() as $objectID) {
+        foreach (IPS_GetObjectList() as $objectID) {
             $object = IPS_GetObject($objectID);
             if ($object['ObjectType'] === 6 /* Link */) {
                 $targetID = IPS_GetLink($objectID)['TargetID'];
