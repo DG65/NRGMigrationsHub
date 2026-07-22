@@ -122,11 +122,14 @@ class MigrationsHub extends IPSModule
     // erkennen würde.
     private function HasArchiveHistory(int $archiveID, int $variableID): bool
     {
-        // AC_GetLoggedValues() liefert false statt eines (leeren) Arrays,
-        // wenn die Variable in diesem Archiv gar nicht für Logging registriert
-        // ist ("Logging ist für diese Variable nicht verfügbar") — das ist
-        // kein Fehlerfall, sondern bedeutet schlicht: keine Historie vorhanden.
-        $values = AC_GetLoggedValues($archiveID, $variableID, 0, 0, 1);
+        // AC_GetLoggedValues() liefert false statt eines (leeren) Arrays und
+        // erzeugt zusätzlich eine PHP-Warnung ("Logging ist für diese Variable
+        // nicht verfügbar"), wenn die Variable in diesem Archiv gar nicht für
+        // Logging registriert ist — das ist kein Fehlerfall, sondern bedeutet
+        // schlicht: keine Historie vorhanden (genau der erwartete Fall bei
+        // einem noch "jungfräulichen" Ziel). Die Warnung wird hier bewusst
+        // unterdrückt, der false-Rückgabewert aber weiterhin ausgewertet.
+        $values = @AC_GetLoggedValues($archiveID, $variableID, 0, 0, 1);
         if ($values === false) {
             return false;
         }
