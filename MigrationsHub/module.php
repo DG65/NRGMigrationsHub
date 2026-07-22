@@ -369,7 +369,7 @@ class MigrationsHub extends IPSModule
     private function FindScriptReferences(int $variableID): array
     {
         $matches = [];
-        foreach (IPS_GetScriptIDList() as $scriptID) {
+        foreach (IPS_GetScriptList() as $scriptID) {
             $content = @IPS_GetScriptContent($scriptID);
             if ($content === false) {
                 continue;
@@ -385,7 +385,7 @@ class MigrationsHub extends IPSModule
     private function FindEventReferences(int $variableID): array
     {
         $matches = [];
-        foreach (IPS_GetEventIDList() as $eventID) {
+        foreach (IPS_GetEventList() as $eventID) {
             $event = IPS_GetEvent($eventID);
             if (isset($event['TriggerVariableID']) && (int) $event['TriggerVariableID'] === $variableID) {
                 $matches[] = $eventID;
