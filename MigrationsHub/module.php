@@ -30,6 +30,13 @@ class MigrationsHub extends IPSModule
         // Auswahl über Formular-Neuöffnungen hinweg erhalten bleibt.
         $this->RegisterPropertyInteger('SourceInstanceID', 0);
         $this->RegisterPropertyInteger('TargetInstanceID', 0);
+
+        // Abhak-Liste manuell zu prüfender Fundstellen (Skripte/Events, die die
+        // Alt-Variablen-ID referenzieren) — Property, damit der Nutzer sie
+        // Stück für Stück abarbeiten kann und der Fortschritt über mehrere
+        // Sitzungen hinweg erhalten bleibt, statt bei jedem Formular-Neuöffnen
+        // neu anfangen zu müssen.
+        $this->RegisterPropertyString('ManualChecks', '[]');
     }
 
     public function ApplyChanges()
@@ -287,6 +294,104 @@ class MigrationsHub extends IPSModule
         }
         unset($row);
         $this->UpdateFormField('SourceVariables', 'values', json_encode($sourceVariables));
+    }
+
+    // --- Referenz-Scan: Skripte/Events, die die Alt-Variable evtl. fest per
+    // ID referenzieren. AC_ChangeVariableID und die Link-Umhängung erfassen
+    // nur Archiv und WebFront-Links — Skriptcode, Event-Trigger, IPSView-
+    // Konfigurationen, Workflows oder Properties fremder Module bleiben davon
+    // unberührt. Das lässt sich nicht gefahrlos automatisch umschreiben, daher
+    // hier nur ein rein lesender Scan, dessen Treffer der Nutzer manuell
+    // prüft und abhakt.
+
+    // Durchsucht alle Migrationspaare nach Skript-/Event-Referenzen auf die
+    // jeweilige Alt-Variable und ergänzt neue Funde in der persistenten
+    // Abhak-Liste (ManualChecks) — bereits vorhandene Einträge (inkl. bereits
+    // gesetztem "Erledigt"-Haken) bleiben unangetastet, damit ein erneuter
+    // Scan den Fortschritt nicht zurücksetzt.
+    public function ScanReferences($migrations, $manualChecks): void
+    {
+        $migrations = $this->NormalizeFormList($migrations);
+        $manualChecks = $this->NormalizeFormList($manualChecks);
+
+        $existingKeys = [];
+        foreach ($manualChecks as $row) {
+            $existingKeys[$row['OldVariableID'] . '|' . $row['Type'] . '|' . $row['ObjectID']] = true;
+        }
+
+        foreach ($migrations as $migrationRow) {
+            $oldID = (int) $migrationRow['OldVariableID'];
+            if ($oldID === 0 || !IPS_VariableExists($oldID)) {
+                continue;
+            }
+            $oldName = IPS_GetName($oldID);
+
+            foreach ($this->FindScriptReferences($oldID) as $scriptID) {
+                $key = $oldID . '|Skript|' . $scriptID;
+                if (isset($existingKeys[$key])) {
+                    continue;
+                }
+                $existingKeys[$key] = true;
+                $manualChecks[] = [
+                    'OldVariableID' => $oldID,
+                    'OldName' => $oldName,
+                    'Type' => 'Skript',
+                    'ObjectID' => $scriptID,
+                    'ObjectName' => IPS_GetName($scriptID),
+                    'Done' => false,
+                ];
+            }
+
+            foreach ($this->FindEventReferences($oldID) as $eventID) {
+                $key = $oldID . '|Event|' . $eventID;
+                if (isset($existingKeys[$key])) {
+                    continue;
+                }
+                $existingKeys[$key] = true;
+                $manualChecks[] = [
+                    'OldVariableID' => $oldID,
+                    'OldName' => $oldName,
+                    'Type' => 'Event',
+                    'ObjectID' => $eventID,
+                    'ObjectName' => IPS_GetName($eventID),
+                    'Done' => false,
+                ];
+            }
+        }
+
+        $this->UpdateFormField('ManualChecks', 'values', json_encode($manualChecks));
+    }
+
+    // Textsuche (keine Codeanalyse!) nach der Alt-Variablen-ID als eigenständige
+    // Zahl im Skriptquelltext — liefert auch False Positives (z. B. wenn die
+    // Zahl zufällig anderswo vorkommt), ist aber die einzige generische
+    // Möglichkeit, feste ID-Referenzen in PHP-Skripten überhaupt aufzuspüren.
+    private function FindScriptReferences(int $variableID): array
+    {
+        $matches = [];
+        foreach (IPS_GetScriptIDList() as $scriptID) {
+            $content = @IPS_GetScriptContent($scriptID);
+            if ($content === false) {
+                continue;
+            }
+            if (preg_match('/(?<!\d)' . $variableID . '(?!\d)/', $content)) {
+                $matches[] = $scriptID;
+            }
+        }
+        return $matches;
+    }
+
+    // Events, deren Auslöser (TriggerVariableID) die Alt-Variable ist.
+    private function FindEventReferences(int $variableID): array
+    {
+        $matches = [];
+        foreach (IPS_GetEventIDList() as $eventID) {
+            $event = IPS_GetEvent($eventID);
+            if (isset($event['TriggerVariableID']) && (int) $event['TriggerVariableID'] === $variableID) {
+                $matches[] = $eventID;
+            }
+        }
+        return $matches;
     }
 
     // Form-Felder vom Typ List übergibt IP-Symcon dem Handler als IPSList-

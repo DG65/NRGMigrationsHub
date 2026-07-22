@@ -138,6 +138,61 @@
       "values": []
     },
     {
+      "type": "Label",
+      "caption": "Wichtig: Archiv und WebFront-Links werden automatisch migriert. Skripte, Events, IPSView-Kacheln, Workflows und Properties anderer Module (die eine Variablen-ID fest referenzieren) NICHT — dafür dient der folgende Scan als Checkliste zur manuellen Prüfung."
+    },
+    {
+      "type": "Button",
+      "caption": "Referenzen scannen (Skripte/Events)",
+      "onClick": "MIGHUB_ScanReferences($id, $Migrations, $ManualChecks);"
+    },
+    {
+      "type": "List",
+      "name": "ManualChecks",
+      "caption": "Manuell zu prüfende Fundstellen",
+      "rowCount": 10,
+      "add": false,
+      "delete": true,
+      "columns": [
+        {
+          "caption": "Alte Variable",
+          "name": "OldName",
+          "width": "200px"
+        },
+        {
+          "caption": "Typ",
+          "name": "Type",
+          "width": "100px"
+        },
+        {
+          "caption": "Fundort",
+          "name": "ObjectName",
+          "width": "auto"
+        },
+        {
+          "caption": "Erledigt",
+          "name": "Done",
+          "width": "100px",
+          "edit": {
+            "type": "CheckBox"
+          }
+        },
+        {
+          "caption": "OldVariableID",
+          "name": "OldVariableID",
+          "width": "80px",
+          "visible": false
+        },
+        {
+          "caption": "ObjectID",
+          "name": "ObjectID",
+          "width": "80px",
+          "visible": false
+        }
+      ],
+      "values": []
+    },
+    {
       "type": "Button",
       "caption": "Migration simulieren (Dry-Run — schreibt nichts)",
       "onClick": "MIGHUB_SimulateMigrations($id, $Migrations);"
