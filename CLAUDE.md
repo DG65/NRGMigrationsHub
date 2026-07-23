@@ -70,6 +70,25 @@ und Warnung. Vor dem Bau: End-to-End-Test an EINER Wegwerf-Variable gegen eine f
 InverterHub-GoodWe-Instanz (Objekt-ID erhalten? Modul bespielt sie? Aktion/Profil sitzt?
 Historie sichtbar?).
 
+**Scharfe Kante (aus InverterHub-Code bestätigt): Adoption schlägt DESTRUKTIV fehl.** Der
+GoodWe-Treiber ruft in `ApplyChanges` zuerst `PruneForeignObjects()` auf — das **löscht** jede
+Kind-Variable, deren Ident nicht im gültigen Set des aktuell gewählten Treibers steht (inaktive
+optionale Gruppe, `MpptCount` zu klein, oder Ident dem Treiber unbekannt). Erst danach läuft die
+Ident-Wiederverwendung. Konsequenz: hängt man die historienbehaftete Original-Variable mit
+einem (noch) ungültigen Ident/Typ an, wird sie samt Historie unwiederbringlich gelöscht.
+Gegensatz: `AC_ChangeVariableID` schlägt **sicher** fehl (verweigert, Altdaten bleiben).
+Adoption braucht daher **mehr** Vorab-Sicherung, nicht weniger.
+
+Pflicht-Sicherung im Adoptions-Modus:
+- **Preflight-Sonde je Ident**, bevor die echte Variable angefasst wird: Wegwerf-Variable mit
+  exakt gleichem Ident und Typ anhängen → `IPS_ApplyChanges` → prüfen ob sie überlebt (Objekt-ID
+  noch da). Nur dann die echte Variable umhängen. Sonde danach löschen.
+- Nur Idents adoptieren, die aktuell im gültigen Set stehen; Zielgruppe vorher aktivieren,
+  `MpptCount` passend (0 = alle), Typ exakt gleich.
+- Idents, die das Zielmodul noch nicht kennt (z. B. die 18 BMS-Zellendiagnostik-Idents vor
+  ihrem Register-Einbau in InverterHub), sind für Adoption **gesperrt** — erst registrieren,
+  dann adoptieren.
+
 ## Stable-Checkliste (Store-Review, von Beginn an erfüllen)
 
 Erkenntnisse aus bisherigen Store-Reviews im Verbund — bei jeder Änderung einhalten:
