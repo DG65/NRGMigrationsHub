@@ -87,12 +87,15 @@ die umgehängte Variable wieder (setzte Name + richtige Kategorie, legte KEINE n
 Objekt-ID (Live-Nachweis an gewachsener Historie steht beim ersten echten Lauf aus, weil
 `AC_AddLoggedValues` über den MCP-Kanal unzuverlässig ist).
 
-**Aktionsbindung:** bei `Active=false` NICHT gesetzt — aber auch auf der nativen Modul-Variable
-nicht, weil InverterHubs `EnableActionsTimer` nur bei `Active=true` feuert (ApplyChanges kehrt
-sonst früh zurück). Das Fehlen ist also der Aktivierungs-Gate, kein Adoptions-Defekt; `EnableActions`
-bindet per `FindVarByIdent` identbasiert, wirkt auf adoptierte und native Variablen identisch. Am
-echten Migrationsziel (`Active=true`) kommt die Bindung automatisch. Empirischer Nachweis bewusst
-auf den ersten echten Lauf verschoben (kein eigenmächtiges Aktivschalten der Fremd-Testinstanz).
+**Aktionsbindung:** nicht gesetzt — aber auch auf der nativen Modul-Variable nicht. Präzise
+Vorbedingung (von InverterHub empirisch geklärt): IPS bindet Custom-Aktionen nur an Instanzen mit
+**Status 102 = aktiv UND gültiger, erreichbarer Host**. `Active=true` allein genügt NICHT — eine
+hostlose Instanz wie die Wegwerf-#59108 bleibt auf Status 104, der `EnableActionsTimer` feuert nie,
+`IPS_SetVariableCustomAction` bleibt wirkungslos (nativ wie adoptiert). Das Fehlen ist also der
+Status-102-Gate, kein Adoptions-Defekt; `EnableActions` bindet per `FindVarByIdent` identbasiert,
+wirkt auf adoptierte und native Variablen identisch. Am echten Migrationsziel (Status 102) kommt
+die Bindung automatisch — Nachweis daher erst beim ersten echten Lauf (Testinstanz ohne Host
+kann ihn prinzipiell nicht erbringen).
 
 **Befund Anzeigeprofil:** Das Zielmodul setzt beim Wiederverwenden KEIN Profil (respektiert die
 Stable-Regel „Custom-Profile nicht in ApplyChanges überschreiben"). Eine echte Alt-Variable behält
