@@ -133,12 +133,14 @@ Erkenntnisse aus bisherigen Store-Reviews im Verbund — bei jeder Änderung ein
   das der Quelle aufzwingen.
 - `module.json`: `vendor` = `""` (reines Hilfsmodul ohne Fremdsystem).
 - `library.json`: `url`-Feld ist Pflicht.
-- **Emojis nur als Panel-Icon** — ein einzelnes Zeichen am Anfang einer `ExpansionPanel`-
-  Überschrift, als Ersatz für das fehlende `icon`-Feld der Panels. KEINE dekorativen Emojis im
-  Fließ-, Hinweis- oder Statustext (dort typografische Zeichen wie `→` verwenden). Faktenlage:
-  ein echtes Symcon-Store-Review hat Emoji-Panel-Icons nie beanstandet (Verbund-Entscheidung
-  23.07.2026). **Beobachtungsklausel:** sollte je ein Stable-Review Panel-Icon-Emojis doch
-  bemängeln, stellt der GANZE Verbund gemeinsam auf durchgängig emoji-frei um.
+- **Emojis sind erwünscht, wo sie Nutzen stiften:** (1) als **Panel-Icon** — ein Zeichen am
+  Anfang einer `ExpansionPanel`-Überschrift (📖🔌📊), Ersatz fürs fehlende `icon`-Feld; (2) als
+  **Status-/Aufmerksamkeitssymbol** (✅❌⚠️💡ℹ️) dort, wo etwas beim Lesen Aufmerksamkeit erfordert
+  oder herausgestellt werden soll (Status, Warnungen, wichtige Hinweise) — sie bringen Fokus und
+  Auflockerung. Faktenlage: kein Symcon-Store-Review hat Emojis je beanstandet (Entscheidung
+  Dietmar, 23.07.2026; die frühere „keine Emojis"-Regel war präventiv und ist aufgehoben).
+  **Beobachtungsklausel:** sollte je ein Stable-Review Emojis bemängeln, entscheidet der Verbund
+  neu (Rückfall: gemeinsam emoji-frei).
 - Klassenname = Modulname; Installation nur über die Modulverwaltung.
 - Sprachregel (alles Nutzersichtbare deutsch) und Eigenständigkeit (`.tools/check-standalone.php`
   grün) einhalten.
