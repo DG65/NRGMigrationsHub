@@ -100,9 +100,12 @@ Pflicht-Sicherung im Adoptions-Modus:
   noch da). Nur dann die echte Variable umhängen. Sonde danach löschen.
 - Nur Idents adoptieren, die aktuell im gültigen Set stehen; Zielgruppe vorher aktivieren,
   `MpptCount` passend (0 = alle), Typ exakt gleich.
-- Idents, die das Zielmodul noch nicht kennt (z. B. die 18 BMS-Zellendiagnostik-Idents vor
-  ihrem Register-Einbau in InverterHub), sind für Adoption **gesperrt** — erst registrieren,
-  dann adoptieren.
+- Idents, die das Zielmodul noch nicht kennt, sind für Adoption **gesperrt** — erst registrieren,
+  dann adoptieren. Konkret GoodweET→InverterHub: seit InverterHub 0.71.0-beta.1 (Build 180) deckt
+  der GoodWe-Treiber alle **138/138 Idents** ab, inkl. der 18 BMS-Zelldiagnostik-Idents
+  (`bat{1,2}_pack_temp`, `cell_vmax/vmin`, `cell_tmax/tmin`, `idx_*`) — kein Sonderfall mehr.
+  Typ-Falle dabei: `pack_temp`/`cell_tmax`/`cell_tmin` sind **Float**, `cell_vmax/vmin` und alle
+  `idx_*` sind **Integer**; die Batterie-1/2-Gruppen müssen aktiviert sein.
 
 ## Stable-Checkliste (Store-Review, von Beginn an erfüllen)
 
