@@ -144,6 +144,14 @@ Erkenntnisse aus bisherigen Store-Reviews im Verbund — bei jeder Änderung ein
 - Klassenname = Modulname; Installation nur über die Modulverwaltung.
 - Sprachregel (alles Nutzersichtbare deutsch) und Eigenständigkeit (`.tools/check-standalone.php`
   grün) einhalten.
+- **Versionierung (Verbund-Konvention, Manifest [EMS/SUITE.md](https://github.com/DG65/EMS/blob/main/SUITE.md)):**
+  Modul-Version bleibt SemVer je Modul. Jeder Datenvertrag (`*_GetFunctions` u. ä.) liefert
+  `contractVersion => 'Major.Minor'` — Major nur bei Bruch (Kompatibilität nur innerhalb derselben
+  Major, blue'Log-Prinzip), Minor additiv, fehlend = `'1.0'`. Ist die Major eines Partnermoduls zu
+  alt: standalone weiterlaufen, Kopplung deaktivieren, sichtbar melden
+  (`⚠️ Partnermodul X benötigt eine Aktualisierung …`). Suite-Release als CalVer im Manifest.
+  MigrationsHub hat selbst **keinen** Datenvertrag; maßgebliche Kompatibilitätsgröße beim Migrieren
+  sind die **Idents** (API) der Suite-Zielmodule, nicht deren Modulversionen.
 
 ## Eigenständigkeit prüfen: `.tools/check-standalone.php`
 
