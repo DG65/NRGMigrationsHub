@@ -243,13 +243,8 @@
       "values": []
     },
     {
-      "type": "Button",
-      "caption": "Migration simulieren (Probelauf — schreibt nichts)",
-      "onClick": "MIGHUB_SimulateMigrations($id, $Migrations);"
-    },
-    {
       "type": "Label",
-      "caption": "Achtung: \"Migration jetzt ausführen\" überträgt Archivhistorie (AC_ChangeVariableID) und Verknüpfungen unwiderruflich auf die neuen Variablen und kann nicht automatisch rückgängig gemacht werden. Vorher unbedingt simulieren."
+      "caption": "Zwei Migrationswege: ÜBERNAHME (Adoption) ist verlustfrei und bevorzugt — die alte Variable wird selbst übernommen, Historie und alle Referenzen bleiben ohne Umbau erhalten (nur eigene Suite-Module). VERKNÜPFEN (AC_ChangeVariableID) hängt die Historie auf die neue Variable um; Rückfall, wo Übernahme nicht geht (Typ passt nicht)."
     },
     {
       "type": "CheckBox",
@@ -257,10 +252,40 @@
       "caption": "Ich habe die Zuordnung oben geprüft (inkl. Simulation) und bin sicher, dass sie korrekt ist"
     },
     {
-      "type": "Button",
-      "caption": "Migration jetzt ausführen",
-      "confirm": "Dieser Vorgang überträgt Archivhistorie und Verknüpfungen unwiderruflich auf die neuen Variablen. Wirklich fortfahren?",
-      "onClick": "MIGHUB_RunMigrations($id, $Confirmed, $Migrations);"
+      "type": "RowLayout",
+      "items": [
+        {
+          "type": "Button",
+          "caption": "Übernahme simulieren (Probelauf)",
+          "onClick": "MIGHUB_SimulateAdoptions($id, $Migrations);"
+        },
+        {
+          "type": "Button",
+          "caption": "Übernahme (Adoption) jetzt ausführen",
+          "confirm": "Übernahme-Modus: die alten Variablen werden unter die neuen Instanzen gehängt (Objekt-ID bleibt erhalten). Eine Preflight-Sonde sichert je Ident ab; wo Übernahme nicht geht, wird auf AC_ChangeVariableID zurückgefallen. Wirklich fortfahren?",
+          "onClick": "MIGHUB_RunAdoptions($id, $Confirmed, $Migrations);"
+        }
+      ]
+    },
+    {
+      "type": "Label",
+      "caption": "Alternativer Weg (Verknüpfen): überträgt Archivhistorie per AC_ChangeVariableID und hängt Verknüpfungen auf die neuen Variablen um — unwiderruflich. Nur nutzen, wenn Übernahme nicht in Frage kommt."
+    },
+    {
+      "type": "RowLayout",
+      "items": [
+        {
+          "type": "Button",
+          "caption": "Verknüpfen simulieren (Probelauf)",
+          "onClick": "MIGHUB_SimulateMigrations($id, $Migrations);"
+        },
+        {
+          "type": "Button",
+          "caption": "Verknüpfen jetzt ausführen",
+          "confirm": "Dieser Vorgang überträgt Archivhistorie und Verknüpfungen unwiderruflich auf die neuen Variablen. Wirklich fortfahren?",
+          "onClick": "MIGHUB_RunMigrations($id, $Confirmed, $Migrations);"
+        }
+      ]
     },
     {
       "type": "Label",

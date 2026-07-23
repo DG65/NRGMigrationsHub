@@ -230,6 +230,154 @@ class MigrationsHub extends IPSModule
         return ['success' => true, 'reason' => '', 'archived' => $archived, 'relinked' => $relinked, 'dryRun' => $dryRun];
     }
 
+    // --- Adoptions-Modus (bevorzugter, verlustfreier Migrationsweg) --------
+    //
+    // Statt die Historie per AC_ChangeVariableID umzuhängen, wird die ALTE
+    // Variable selbst übernommen: sie behält ihre Objekt-ID, damit bleiben
+    // Historie UND alle Variablen-Referenzen (Skripte/Ereignisse/Links) ohne
+    // Umbau intakt. $newVariableID ist die vom Zielmodul frisch angelegte
+    // Variable — aus ihr lesen wir Ident, Typ, Profil, Kategorie und Instanz.
+    //
+    // Scharfe Kante: das Zielmodul ruft in ApplyChanges PruneForeignObjects()
+    // auf und LÖSCHT jede Variable mit ungültigem Ident/Typ. Adoption schlägt
+    // also DESTRUKTIV fehl. Deshalb: Typ vorab prüfen, per Preflight-Sonde
+    // (Wegwerf-Variable) absichern, und die echte historienbehaftete Variable
+    // erst anfassen, wenn die Sonde überlebt hat. Wo Adoption nicht geht
+    // (Typ-Mismatch, Sonde stirbt), signalisiert die Methode den Rückfall auf
+    // AC_ChangeVariableID.
+    public function AdoptVariable(int $oldVariableID, int $newVariableID, bool $dryRun = false): array
+    {
+        $fail = fn ($reason, $fallback = false) => ['success' => false, 'mode' => $fallback ? 'Rückfall' : '-', 'reason' => $reason, 'fallback' => $fallback, 'dryRun' => $dryRun];
+
+        if (!IPS_VariableExists($oldVariableID)) {
+            return $fail('Alte Variable existiert nicht');
+        }
+        if (!IPS_VariableExists($newVariableID)) {
+            return $fail('Neue (Modul-)Variable existiert nicht');
+        }
+        if ($oldVariableID === $newVariableID) {
+            return $fail('Alte und neue Variable sind identisch');
+        }
+
+        $newObj = IPS_GetObject($newVariableID);
+        $newVar = IPS_GetVariable($newVariableID);
+        $targetIdent = $newObj['ObjectIdent'];
+        $targetType = $newVar['VariableType'];
+        $targetProfile = $newVar['VariableCustomProfile'] !== '' ? $newVar['VariableCustomProfile'] : $newVar['VariableProfile'];
+        $targetInstance = $this->FindOwningInstance($newVariableID);
+
+        if ($targetIdent === '') {
+            return $fail('Neue Variable hat keinen Ident — Adoption braucht einen Ident');
+        }
+        if ($targetInstance === 0) {
+            return $fail('Zielinstanz zur neuen Variable nicht gefunden');
+        }
+
+        $oldType = IPS_GetVariable($oldVariableID)['VariableType'];
+        if ($oldType !== $targetType) {
+            return $fail('Typ passt nicht (' . $this->TypeName($oldType) . ' vs. ' . $this->TypeName($targetType) . ') — Rückfall AC_ChangeVariableID', true);
+        }
+
+        if ($dryRun) {
+            // Simulation: nicht-mutierende Vorhersage. Die echte Preflight-Sonde
+            // läuft erst im scharfen Lauf (sie muss Objekte anlegen/löschen).
+            return ['success' => true, 'mode' => 'Adoption', 'reason' => 'würde adoptiert (Ident ' . $targetIdent . ', Profil ' . ($targetProfile !== '' ? $targetProfile : '—') . ')', 'fallback' => false, 'dryRun' => true];
+        }
+
+        // --- scharfer Lauf ---
+        // 1) Modul-Variable entfernen, damit der Ident frei ist.
+        IPS_DeleteVariable($newVariableID);
+
+        // 2) Preflight-Sonde: Wegwerf-Variable gleichen Typs/Idents anhängen und
+        //    ApplyChanges — überlebt sie, ist der Ident im gültigen Set und die
+        //    echte Variable kann gefahrlos adoptiert werden.
+        if (!$this->ProbeAdoption($targetInstance, $targetIdent, $targetType)) {
+            // Ident überlebt die Prune nicht → Adoption unsicher. Modul-Variable
+            // neu erzeugen lassen und auf AC_ChangeVariableID zurückfallen.
+            IPS_ApplyChanges($targetInstance);
+            $recreated = $this->FindVarByIdentUnder($targetInstance, $targetIdent);
+            if ($recreated !== 0) {
+                $classic = $this->MigrateVariable($oldVariableID, $recreated, false);
+                $classic['mode'] = 'Rückfall';
+                return $classic;
+            }
+            return $fail('Preflight-Sonde entfernt — Ident nicht adoptierbar und kein Rückfallziel erzeugbar');
+        }
+
+        // 3) echte Alt-Variable adoptieren.
+        IPS_SetParent($oldVariableID, $targetInstance);
+        IPS_SetIdent($oldVariableID, $targetIdent);
+        IPS_ApplyChanges($targetInstance);
+
+        // 4) Sicherung gegen die destruktive Prune-Kante (trotz Sonde).
+        if (!IPS_ObjectExists($oldVariableID)) {
+            return $fail('KRITISCH: Alt-Variable nach ApplyChanges verschwunden — Historie verloren');
+        }
+
+        // 5) Profil des Zielmoduls nachziehen (das Modul setzt beim Wiederver-
+        //    wenden keins — bewusst, Stable-Regel; hier als Migrationsaktion).
+        if ($targetProfile !== '') {
+            @IPS_SetVariableCustomProfile($oldVariableID, $targetProfile);
+        }
+
+        // Links/Referenzen bleiben durch die erhaltene Objekt-ID automatisch gültig.
+        return ['success' => true, 'mode' => 'Adoption', 'reason' => 'adoptiert, Objekt-ID ' . $oldVariableID . ' erhalten', 'fallback' => false, 'dryRun' => false];
+    }
+
+    // Hängt eine Wegwerf-Variable mit exakt $ident/$type unter $instanceID und
+    // wendet die Instanz an. Überlebt sie (Objekt-ID noch da), ist der Ident im
+    // gültigen Set des Zielmoduls. Sonde wird danach entfernt. Rein für den
+    // scharfen Adoptionslauf, bevor die echte Variable angefasst wird.
+    private function ProbeAdoption(int $instanceID, string $ident, int $type): bool
+    {
+        $probe = IPS_CreateVariable($type);
+        IPS_SetIdent($probe, 'zz_mighub_probe_' . $probe);
+        IPS_SetParent($probe, $instanceID);
+        IPS_SetIdent($probe, $ident);
+        IPS_ApplyChanges($instanceID);
+        $survived = IPS_ObjectExists($probe);
+        if ($survived) {
+            IPS_DeleteVariable($probe);
+        }
+        return $survived;
+    }
+
+    // Läuft von einer Variable die Elternkette hinauf bis zur tragenden
+    // Instanz (Variablen liegen bei Hub-Modulen unter Kategorien, nicht direkt
+    // unter der Instanz). 0, falls keine Instanz gefunden.
+    private function FindOwningInstance(int $objectID): int
+    {
+        $cursor = IPS_GetObject($objectID)['ParentID'];
+        while ($cursor > 0) {
+            if (IPS_InstanceExists($cursor)) {
+                return $cursor;
+            }
+            $cursor = IPS_GetObject($cursor)['ParentID'];
+        }
+        return 0;
+    }
+
+    // Sucht rekursiv unter $instanceID eine Variable mit $ident.
+    private function FindVarByIdentUnder(int $instanceID, string $ident): int
+    {
+        foreach (IPS_GetChildrenIDs($instanceID) as $childID) {
+            $object = IPS_GetObject($childID);
+            if ($object['ObjectType'] === 2 && $object['ObjectIdent'] === $ident) {
+                return $childID;
+            }
+            $deeper = $this->FindVarByIdentUnder($childID, $ident);
+            if ($deeper !== 0) {
+                return $deeper;
+            }
+        }
+        return 0;
+    }
+
+    private function TypeName(int $type): string
+    {
+        return ['Boolean', 'Integer', 'Float', 'String'][$type] ?? ('Typ ' . $type);
+    }
+
     // Liefert die ArchiveControl-Instanz, in der $variableID geloggt wird,
     // oder 0, falls die Variable in keinem Archiv geloggt ist.
     private function FindArchiveInstance(int $variableID): int
@@ -388,23 +536,74 @@ class MigrationsHub extends IPSModule
             $existingOldIDs[] = (int) $migrationRow['OldVariableID'];
         }
 
-        foreach ($sourceVariables as $row) {
-            if (empty($row['Selected'])) {
-                continue;
-            }
+        $selected = array_values(array_filter($sourceVariables, fn ($r) => !empty($r['Selected'])));
+        $whTwins = $this->DetectWhTwins($selected);
+
+        foreach ($selected as $row) {
             $oldID = (int) $row['VariableID'];
             if (in_array($oldID, $existingOldIDs, true)) {
                 continue;
             }
             $suggestedNewID = $targetByIdent[$row['Ident']] ?? 0;
+            if (isset($whTwins[$oldID])) {
+                // Wh-Variante mit vorhandenem kWh-Zwilling: kWh bevorzugen, den
+                // Wh-Eintrag markieren (nicht nur warnen). Ziel bewusst leer, um
+                // versehentliches Migrieren der um Faktor 1000 versetzten Reihe
+                // zu verhindern.
+                $status = 'Wh-Zwilling → kWh-Variante »' . $whTwins[$oldID] . '« bevorzugen';
+                $suggestedNewID = 0;
+            } else {
+                $status = $suggestedNewID !== 0 ? 'Vorschlag anhand Ident — bitte prüfen' : 'Ziel wählen';
+            }
             $migrations[] = [
                 'OldVariableID' => $oldID,
                 'NewVariableID' => $suggestedNewID,
-                'Status' => $suggestedNewID !== 0 ? 'Vorschlag anhand Ident — bitte prüfen' : 'Ziel wählen',
+                'Status' => $status,
                 'References' => $this->DescribeReferences($oldID, $linkCounts),
             ];
         }
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
+    }
+
+    // Erkennt Wh/kWh-Zwillinge unter den gewählten Alt-Datenpunkten: dieselbe
+    // physikalische Größe liegt oft zweimal vor, um Faktor 1000 versetzt (z. B.
+    // »…_Wh« und »…_kWh«). Liefert Map Wh-VariableID => Name der kWh-Variante,
+    // damit der Aufrufer die Wh-Variante markieren und die kWh-Variante
+    // bevorzugen kann (belegter Fall aus der MeterHub-Analyse #40078).
+    private function DetectWhTwins(array $rows): array
+    {
+        $byBase = [];
+        foreach ($rows as $r) {
+            $ident = strtolower((string) ($r['Ident'] ?? ''));
+            $name = (string) ($r['Name'] ?? '');
+            $unit = null;
+            $base = null;
+            if (preg_match('/^(.*?)[_\- ]*kwh$/', $ident, $m)) {
+                $unit = 'kwh';
+                $base = $m[1];
+            } elseif (preg_match('/^(.*?)[_\- ]*wh$/', $ident, $m)) {
+                $unit = 'wh';
+                $base = $m[1];
+            } elseif (stripos($name, 'kwh') !== false) {
+                $unit = 'kwh';
+                $base = strtolower(preg_replace('/\(?\s*k?wh\s*\)?/i', '', $name));
+            } elseif (preg_match('/(\(|\b)wh(\)|\b)/i', $name)) {
+                $unit = 'wh';
+                $base = strtolower(preg_replace('/\(?\s*k?wh\s*\)?/i', '', $name));
+            }
+            if ($unit === null) {
+                continue;
+            }
+            $base = trim($base);
+            $byBase[$base][$unit] = ['id' => (int) $r['VariableID'], 'name' => $name];
+        }
+        $twins = [];
+        foreach ($byBase as $pair) {
+            if (isset($pair['wh'], $pair['kwh'])) {
+                $twins[$pair['wh']['id']] = $pair['kwh']['name'];
+            }
+        }
+        return $twins;
     }
 
     // Leert die Migrationsliste komplett — Alternative zum einzelnen Löschen
@@ -633,6 +832,67 @@ class MigrationsHub extends IPSModule
         return [$migrations, $results];
     }
 
+    // Simuliert den Adoptions-Lauf (nicht-mutierend): sagt je Paar voraus, ob
+    // adoptiert würde oder auf AC_ChangeVariableID zurückgefallen wird.
+    public function SimulateAdoptions($migrations): void
+    {
+        [$migrations, $results] = $this->ProcessAdoptions($this->NormalizeFormList($migrations), true);
+        $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
+        $this->UpdateFormField('Results', 'values', json_encode($results));
+    }
+
+    // Führt den Adoptions-Lauf wirklich aus (Preflight-Sonde + Profil-Nachzug
+    // + AC_ChangeVariableID-Rückfall). Zweifach abgesichert wie RunMigrations.
+    public function RunAdoptions(bool $confirmed, $migrations): void
+    {
+        $migrations = $this->NormalizeFormList($migrations);
+        if (!$confirmed) {
+            $this->UpdateFormField('Results', 'values', json_encode([[
+                'OldName' => '', 'NewName' => '', 'Success' => 'nein',
+                'Reason' => 'Abgebrochen: Bestätigungsschalter nicht gesetzt',
+                'OldValue' => '', 'NewValue' => '', 'Plausible' => '-',
+            ]]));
+            return;
+        }
+        [$migrations, $results] = $this->ProcessAdoptions($migrations, false);
+        $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
+        $this->UpdateFormField('Results', 'values', json_encode($results));
+    }
+
+    // Gemeinsame Schleife für RunAdoptions()/SimulateAdoptions().
+    private function ProcessAdoptions(array $migrations, bool $dryRun): array
+    {
+        $results = [];
+        foreach ($migrations as &$row) {
+            $oldID = (int) $row['OldVariableID'];
+            $newID = (int) $row['NewVariableID'];
+            $oldName = IPS_VariableExists($oldID) ? IPS_GetName($oldID) : (string) $oldID;
+            $newName = IPS_VariableExists($newID) ? IPS_GetName($newID) : (string) $newID;
+
+            $result = $this->AdoptVariable($oldID, $newID, $dryRun);
+            $prefix = $dryRun ? '[Simulation] ' : '';
+            if ($result['success']) {
+                $row['Status'] = $prefix . ($dryRun ? 'würde übernommen (Adoption)' : 'übernommen (Adoption)');
+            } elseif (!empty($result['fallback'])) {
+                $row['Status'] = $prefix . 'Rückfall AC_ChangeVariableID: ' . $result['reason'];
+            } else {
+                $row['Status'] = $prefix . 'Fehler: ' . $result['reason'];
+            }
+
+            $results[] = [
+                'OldName' => $oldName,
+                'NewName' => $newName,
+                'Success' => $result['success'] ? 'ja' : 'nein',
+                'Reason' => $prefix . ($result['mode'] !== '-' ? '[' . $result['mode'] . '] ' : '') . $result['reason'],
+                'OldValue' => IPS_VariableExists($oldID) ? GetValueFormatted($oldID) : '',
+                'NewValue' => (!$dryRun && IPS_VariableExists($oldID)) ? GetValueFormatted($oldID) : (IPS_VariableExists($newID) ? GetValueFormatted($newID) : ''),
+                'Plausible' => $result['success'] ? ($dryRun ? 'entfällt (Simulation)' : 'Objekt-ID erhalten') : '-',
+            ];
+        }
+        unset($row);
+        return [$migrations, $results];
+    }
+
     // --- Instanz analysieren & (nach Prüfung) löschen ---------------------
     //
     // Vor dem Löschen einer Alt-Instanz alle Abhängigkeiten sichtbar machen.
@@ -779,7 +1039,19 @@ class MigrationsHub extends IPSModule
             return;
         }
         $name = IPS_GetName($instanceID);
-        IPS_DeleteInstance($instanceID);
+        @IPS_DeleteInstance($instanceID);
+        // IPS_DeleteInstance greift über den Automations-/Skript-Kanal nicht
+        // immer zuverlässig — Erfolg daher prüfen und sonst auf das Löschen in
+        // der Konsole verweisen, statt stumm „erledigt" zu melden.
+        if (IPS_InstanceExists($instanceID)) {
+            $this->UpdateFormField('InstanceReport', 'values', json_encode([[
+                'Category' => 'Löschen',
+                'Detail' => 'Instanz »' . $name . '« (#' . $instanceID . ') konnte nicht entfernt werden — bitte in der Konsole (Objektbaum) löschen',
+                'ObjectID' => $instanceID,
+                'Severity' => 'blockiert',
+            ]]));
+            return;
+        }
         $this->UpdateFormField('InstanceReport', 'values', json_encode([[
             'Category' => 'Löschen', 'Detail' => 'Instanz »' . $name . '« (#' . $instanceID . ') wurde gelöscht', 'ObjectID' => 0, 'Severity' => 'ok',
         ]]));
