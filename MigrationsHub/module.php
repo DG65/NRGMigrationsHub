@@ -273,6 +273,8 @@ class MigrationsHub extends IPSModule
             return $fail('Zielinstanz zur neuen Variable nicht gefunden');
         }
 
+        $targetAggregation = $this->ReadAggregationType($newVariableID); // -1 = unbekannt
+
         $oldType = IPS_GetVariable($oldVariableID)['VariableType'];
         if ($oldType !== $targetType) {
             return $fail('Typ passt nicht (' . $this->TypeName($oldType) . ' vs. ' . $this->TypeName($targetType) . ') — Rückfall AC_ChangeVariableID', true);
@@ -320,8 +322,44 @@ class MigrationsHub extends IPSModule
             @IPS_SetVariableCustomProfile($oldVariableID, $targetProfile);
         }
 
+        // 6) Aggregationstyp des Ziels nachziehen (z. B. Counter für Zähler-
+        //    stände) — die adoptierte Variable behält sonst den der Quelle, und
+        //    eine spätere Auswertung würde Zählerstände als Momentanwerte lesen.
+        if ($targetAggregation >= 0) {
+            $archiveID = $this->FindArchiveInstance($oldVariableID);
+            if ($archiveID === 0) {
+                $archiveID = $this->GetPrimaryArchive();
+            }
+            if ($archiveID !== 0) {
+                @AC_SetAggregationType($archiveID, $oldVariableID, $targetAggregation);
+                IPS_ApplyChanges($archiveID);
+            }
+        }
+
         // Links/Referenzen bleiben durch die erhaltene Objekt-ID automatisch gültig.
         return ['success' => true, 'mode' => 'Adoption', 'reason' => 'adoptiert, Objekt-ID ' . $oldVariableID . ' erhalten', 'fallback' => false, 'dryRun' => false];
+    }
+
+    // Liest den Aggregationstyp einer Variable (0 = Standard/Mittelwert,
+    // 1 = Counter). -1, falls kein Archiv verfügbar oder nicht ermittelbar.
+    private function ReadAggregationType(int $variableID): int
+    {
+        $archiveID = $this->FindArchiveInstance($variableID);
+        if ($archiveID === 0) {
+            $archiveID = $this->GetPrimaryArchive();
+        }
+        if ($archiveID === 0 || !function_exists('AC_GetAggregationType')) {
+            return -1;
+        }
+        $type = @AC_GetAggregationType($archiveID, $variableID);
+        return is_int($type) ? $type : -1;
+    }
+
+    // Erste ArchiveControl-Instanz (in der Regel gibt es genau eine).
+    private function GetPrimaryArchive(): int
+    {
+        $list = IPS_GetInstanceListByModuleID(self::ARCHIVE_CONTROL_GUID);
+        return $list === [] ? 0 : (int) $list[0];
     }
 
     // Hängt eine Wegwerf-Variable mit exakt $ident/$type unter $instanceID und
