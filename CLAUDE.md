@@ -79,6 +79,21 @@ einem (noch) ungültigen Ident/Typ an, wird sie samt Historie unwiederbringlich 
 Gegensatz: `AC_ChangeVariableID` schlägt **sicher** fehl (verweigert, Altdaten bleiben).
 Adoption braucht daher **mehr** Vorab-Sicherung, nicht weniger.
 
+**Testergebnis (23.07.2026, an InverterHub-Wegwerf-Instanz #59108, Ident `riso`):** Adoption
+bestätigt. Objekt-ID blieb erhalten; das Modul verwendete die umgehängte Variable wieder (setzte
+Name + Kategorie, legte KEINE neue an), auch bei `Active=false`. Typ erhalten. Historie folgt
+strukturell aus der erhaltenen Objekt-ID (Live-Nachweis an gewachsener Historie steht beim ersten
+echten Lauf aus, weil `AC_AddLoggedValues` über den MCP-Kanal unzuverlässig ist). Aktionsgebundener
+Ident noch nicht getestet.
+
+**Befund Anzeigeprofil:** Das Zielmodul setzt beim Wiederverwenden KEIN Profil (respektiert die
+Stable-Regel „Custom-Profile nicht in ApplyChanges überschreiben"). Eine echte Alt-Variable behält
+ihr eigenes altes Profil (Objekt-ID erhalten), zeigt also das QUELL-Profil, nicht das des Ziels.
+Die Angleichung ans Zielmodul ist daher **Aufgabe von MigrationsHub**: vor dem Entfernen der frisch
+angelegten Modul-Variable deren beabsichtigtes Profil je Ident auslesen und nach der Adoption per
+`IPS_SetVariableCustomProfile` auf die übernommene Variable setzen — als explizite Migrationsaktion
+(nicht in einem Modul-`ApplyChanges`), die die Stable-Regel nicht verletzt.
+
 Pflicht-Sicherung im Adoptions-Modus:
 - **Preflight-Sonde je Ident**, bevor die echte Variable angefasst wird: Wegwerf-Variable mit
   exakt gleichem Ident und Typ anhängen → `IPS_ApplyChanges` → prüfen ob sie überlebt (Objekt-ID
