@@ -171,6 +171,12 @@ Erkenntnisse aus bisherigen Store-Reviews im Verbund — bei jeder Änderung ein
   verwaltet selbst keine Zugangsdaten; relevant nur, falls die Adoption je ein Zugangsdaten-
   Attribut umhängt — Attribute bleiben beim Umhängen unverändert erhalten, keine Sonderbehandlung
   nötig.
+- **Einheitliche Formular-Optik (Verbund-Konvention, Referenz InverterHub, Details in
+  EMS/SUITE.md):** von oben (1) „🆕 Neu in Version X.Y" aufgeklappt, pro Version dismissible
+  (Attribut speichert bestätigte Version), keine Versionsnummer hier; (2) „📖 Dokumentation &
+  Hilfe" eingeklappt, dort die Versionsnummer; (3) Fachpanels, neue/wichtige Felder mit
+  `🆕`-Präfix im Label; (4) Symcon-Forum-Hinweis nach den Haupteinstellungen, einmalig
+  dismissible. Kein Sofort-Umbau nötig, bei Gelegenheit nachziehen.
 
 ## Eigenständigkeit prüfen: `.tools/check-standalone.php`
 
