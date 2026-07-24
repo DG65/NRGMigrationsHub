@@ -5,7 +5,7 @@ IP-Symcon-Modul zur Migration von Bestandsgeräten: Übernahme alter Variablen a
 [InverterHub](https://github.com/DG65/InverterHub) oder [MeterHub](https://github.com/DG65/MeterHub))
 — **mitsamt Archivhistorie und bestehenden Verknüpfungen**.
 
-Teil der DG65 Energie-Suite — welche Modulstände zusammenpassen, steht im Manifest
+Teil des **NRG-Stack** — welche Modulstände zusammenpassen, steht im Manifest
 [EMS/SUITE.md](https://github.com/DG65/EMS/blob/main/SUITE.md).
 
 ## Wofür braucht man das?
