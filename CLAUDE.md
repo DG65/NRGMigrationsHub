@@ -105,6 +105,12 @@ angelegten Modul-Variable deren beabsichtigtes Profil je Ident auslesen und nach
 `IPS_SetVariableCustomProfile` auf die übernommene Variable setzen — als explizite Migrationsaktion
 (nicht in einem Modul-`ApplyChanges`), die die Stable-Regel nicht verletzt.
 
+Der Profil-Nachzug liest das Zielprofil **dynamisch** aus der Modul-Variable (`VariableCustomProfile`),
+nicht hartkodiert — der Wechsel der Suite-Module auf gemeinsame `NRG.*`-Profile (Beschluss
+24.07.2026: `NRG.Watt/kWh/Ampere/Volt/Percent/Celsius`, siehe EMS/SUITE.md) braucht deshalb **keine
+Codeänderung** bei uns; was auch immer ein Zielmodul deklariert (alt modulspezifisch oder neu
+`NRG.*`), wird automatisch korrekt übernommen.
+
 Pflicht-Sicherung im Adoptions-Modus:
 - **Preflight-Sonde je Ident**, bevor die echte Variable angefasst wird: Wegwerf-Variable mit
   exakt gleichem Ident und Typ anhängen → `IPS_ApplyChanges` → prüfen ob sie überlebt (Objekt-ID
