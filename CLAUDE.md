@@ -176,7 +176,10 @@ Erkenntnisse aus bisherigen Store-Reviews im Verbund — bei jeder Änderung ein
   (Attribut speichert bestätigte Version), keine Versionsnummer hier; (2) „📖 Dokumentation &
   Hilfe" eingeklappt, dort die Versionsnummer; (3) Fachpanels, neue/wichtige Felder mit
   `🆕`-Präfix im Label; (4) Symcon-Forum-Hinweis nach den Haupteinstellungen, einmalig
-  dismissible. Kein Sofort-Umbau nötig, bei Gelegenheit nachziehen.
+  dismissible. Kein Sofort-Umbau nötig, bei Gelegenheit nachziehen. **Pflege ist Pflicht bei
+  jedem Fix/Update** (nicht nur großen Releases) — bei jeder Änderung prüfen "gehört da was ins
+  Neu-Panel?", Ergebnis darf "nein" sein. Layout allgemein: logische Gruppierung, Step-by-Step
+  ohne Scroll-Zickzack, Feldkanten auf einer Linie.
 
 ## Eigenständigkeit prüfen: `.tools/check-standalone.php`
 
