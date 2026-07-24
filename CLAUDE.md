@@ -156,6 +156,15 @@ Erkenntnisse aus bisherigen Store-Reviews im Verbund — bei jeder Änderung ein
   (`⚠️ Partnermodul X benötigt eine Aktualisierung …`). Suite-Release als CalVer im Manifest.
   MigrationsHub hat selbst **keinen** Datenvertrag; maßgebliche Kompatibilitätsgröße beim Migrieren
   sind die **Idents** (API) der Suite-Zielmodule, nicht deren Modulversionen.
+- **Zugangsdaten (Verbund-Konvention, für Module mit Cloud-/API-Zugang):** Handshake-/Token-
+  Verfahren bevorzugen (Passwort nur für den einmaligen Handshake, danach nicht speichern — nur
+  Token/Secret bleibt liegen); Passwörter nur dauerhaft speichern, wenn wirklich wiederholt
+  gebraucht. Speicherort `RegisterAttributeString` (nicht Property, nicht im Formular sichtbar);
+  IP-Symcon verschlüsselt nicht at rest — „sicher" heißt „nicht sichtbar", nicht „verschlüsselt".
+  Formulareingabe über `PasswordTextBox`, Wert nach Handshake sofort leeren. MigrationsHub
+  verwaltet selbst keine Zugangsdaten; relevant nur, falls die Adoption je ein Zugangsdaten-
+  Attribut umhängt — Attribute bleiben beim Umhängen unverändert erhalten, keine Sonderbehandlung
+  nötig.
 
 ## Eigenständigkeit prüfen: `.tools/check-standalone.php`
 
