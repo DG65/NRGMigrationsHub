@@ -144,6 +144,10 @@ Erkenntnisse aus bisherigen Store-Reviews im Verbund — bei jeder Änderung ein
 - Klassenname = Modulname; Installation nur über die Modulverwaltung.
 - Sprachregel (alles Nutzersichtbare deutsch) und Eigenständigkeit (`.tools/check-standalone.php`
   grün) einhalten.
+- **Dachmarke: NRG-Stack; Hersteller/Org: DG65** ([github.com/DG65](https://github.com/DG65)).
+- **Lizenz: PolyForm Noncommercial 1.0.0** (privat/nicht-kommerziell frei, gewerblich
+  lizenzpflichtig — Kontakt DG65). Kanonischer `LICENSE`-Text im EMS-Repo, 1:1 übernehmen; wirkt
+  nur nach vorn (MIT-Altversionen bleiben MIT).
 - **Versionierung (Verbund-Konvention, Manifest [EMS/SUITE.md](https://github.com/DG65/EMS/blob/main/SUITE.md)):**
   Modul-Version bleibt SemVer je Modul. Jeder Datenvertrag (`*_GetFunctions` u. ä.) liefert
   `contractVersion => 'Major.Minor'` — Major nur bei Bruch (Kompatibilität nur innerhalb derselben
