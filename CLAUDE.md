@@ -6,7 +6,7 @@ Teil desselben Modul-Verbunds, an mehreren wird teilweise **gleichzeitig in getr
 Sitzungen** gearbeitet:
 
 - **MigrationsHub** (dieses Repo): Migration von Bestandsgeräten/Verknüpfungen/Archivwerten —
-  https://github.com/DG65/MigrationsHub
+  https://github.com/DG65/NRGMigrationsHub
 - **InverterHub**: Wechselrichter per Modbus TCP — https://github.com/DG65/InverterHub
 - **MeterHub**: Energiezähler per Modbus TCP — https://github.com/DG65/MeterHub
 - **ChargerHub**: Wallboxen per Modbus TCP — https://github.com/DG65/ChargerHub

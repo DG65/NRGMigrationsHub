@@ -45,7 +45,7 @@ bereits Historie hat, und lehnt sonst ab.
 ## Installation
 
 1. In der IP-Symcon-Konsole: **Modulverwaltung → Hinzufügen** und die URL dieses Repositories
-   eintragen: `https://github.com/DG65/MigrationsHub`
+   eintragen: `https://github.com/DG65/NRGMigrationsHub`
 2. Eine neue Instanz vom Typ **„MigrationsHub"** anlegen.
 
 ## Lizenz
