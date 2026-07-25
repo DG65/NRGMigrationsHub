@@ -1,10 +1,11 @@
 {
   "id": "{330717BB-E309-41A2-90A8-FDA3179ED948}",
-  "name": "MigrationsHub",
+  "name": "NRGMigrationsHub",
   "type": 3,
   "vendor": "",
   "aliases": [
     "MigrationsHub",
+    "NRGMigrationsHub",
     "Geräte-Migration"
   ],
   "url": "https://github.com/DG65/NRGMigrationsHub",
