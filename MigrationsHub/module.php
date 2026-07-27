@@ -44,7 +44,17 @@ class MigrationsHub extends IPSModule
         // "Bearbeiten"-Knopf, der direkt zum Objekt springt.
         $this->RegisterAttributeString('ScriptChecks', '[]');
         $this->RegisterAttributeString('EventChecks', '[]');
+
+        // Persistenter, deterministischer Nachweis jedes ECHTEN Migrations-/
+        // Adoptionslaufs (kein Probelauf) — was wurde wann mit welchem Ergebnis
+        // übertragen. Anders als die Ergebnisliste im Formular (die beim
+        // nächsten Lauf überschrieben wird) bleibt das erhalten; wichtig für
+        // Nachvollziehbarkeit bei abrechnungsrelevanten Variablen (z. B.
+        // Zählerstände). Auf MAX_LOG_ENTRIES gedeckelt (älteste zuerst raus).
+        $this->RegisterAttributeString('MigrationLog', '[]');
     }
+
+    private const MAX_LOG_ENTRIES = 500;
 
     public function ApplyChanges()
     {
@@ -60,6 +70,7 @@ class MigrationsHub extends IPSModule
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
         $scriptChecks = json_decode($this->ReadAttributeString('ScriptChecks'), true);
         $eventChecks = json_decode($this->ReadAttributeString('EventChecks'), true);
+        $migrationLog = json_decode($this->ReadAttributeString('MigrationLog'), true);
 
         $elements = [];
         foreach ($form['elements'] as $element) {
@@ -82,10 +93,58 @@ class MigrationsHub extends IPSModule
                 if ($panel !== null) {
                     $elements[] = $panel;
                 }
+            } elseif (($element['name'] ?? '') === 'StatusLabel') {
+                $elements[count($elements) - 1]['caption'] = $this->BuildStatusLine($scriptChecks, $eventChecks);
+            } elseif (($element['name'] ?? '') === 'MigrationLog') {
+                $elements[count($elements) - 1]['values'] = array_reverse($migrationLog); // neueste zuerst
             }
         }
         $form['elements'] = $elements;
         return json_encode($form);
+    }
+
+    // Eine Zeile Status auf einen Blick — ohne dass der Nutzer in die
+    // Ergebnistabellen schauen muss. Fasst offene Prüfpunkte aus dem
+    // Referenz-Scan zusammen; "bereit" heißt nur, dass nichts offen aussteht,
+    // nicht dass bereits erfolgreich migriert wurde.
+    private function BuildStatusLine(array $scriptChecks, array $eventChecks): string
+    {
+        $open = 0;
+        foreach (array_merge($scriptChecks, $eventChecks) as $row) {
+            if (empty($row['Done'])) {
+                $open++;
+            }
+        }
+        if ($open > 0) {
+            return '⚠️ ' . $open . ' offene(r) Prüfpunkt(e) aus der Referenz-Suche — noch nicht abgehakt.';
+        }
+        return '✅ Bereit — keine offenen Prüfpunkte aus der Referenz-Suche.';
+    }
+
+    // Hängt Zeilen eines echten (nicht simulierten) Laufs an das persistente
+    // Migrations-Log an, gedeckelt auf MAX_LOG_ENTRIES (älteste zuerst raus).
+    private function AppendToMigrationLog(array $entries): void
+    {
+        if ($entries === []) {
+            return;
+        }
+        $log = json_decode($this->ReadAttributeString('MigrationLog'), true);
+        $timestamp = date('Y-m-d H:i:s');
+        foreach ($entries as $entry) {
+            $entry['Timestamp'] = $timestamp;
+            $log[] = $entry;
+        }
+        if (count($log) > self::MAX_LOG_ENTRIES) {
+            $log = array_slice($log, -self::MAX_LOG_ENTRIES);
+        }
+        $this->WriteAttributeString('MigrationLog', json_encode($log));
+    }
+
+    // Leert das persistente Migrations-Log (z. B. nach externer Archivierung).
+    public function ClearMigrationLog(): void
+    {
+        $this->WriteAttributeString('MigrationLog', '[]');
+        $this->UpdateFormField('MigrationLog', 'values', json_encode([]));
     }
 
     // Einklappbares Panel mit einem OpenObjectButton je (noch existierendem)
@@ -826,6 +885,7 @@ class MigrationsHub extends IPSModule
         [$migrations, $results] = $this->ProcessMigrations($migrations, false);
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
         $this->UpdateFormField('Results', 'values', json_encode($results));
+        $this->AppendToMigrationLog(array_map(fn ($r) => $r + ['Mode' => 'Verknüpfen'], $results));
     }
 
     // Gemeinsame Schleife für RunMigrations() und SimulateMigrations() — nur
@@ -895,6 +955,7 @@ class MigrationsHub extends IPSModule
         [$migrations, $results] = $this->ProcessAdoptions($migrations, false);
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
         $this->UpdateFormField('Results', 'values', json_encode($results));
+        $this->AppendToMigrationLog(array_map(fn ($r) => $r + ['Mode' => 'Übernahme'], $results));
     }
 
     // Gemeinsame Schleife für RunAdoptions()/SimulateAdoptions().

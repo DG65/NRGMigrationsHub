@@ -2,6 +2,11 @@
   "elements": [
     {
       "type": "Label",
+      "name": "StatusLabel",
+      "caption": "…"
+    },
+    {
+      "type": "Label",
       "caption": "Schritt 1: Alt-Instanz (migrieren von) und Neu-Instanz (migrieren nach) wählen"
     },
     {
@@ -397,6 +402,63 @@
           "caption": "Instanz jetzt löschen",
           "confirm": "Die gewählte Instanz wird unwiderruflich gelöscht (samt Kindvariablen). Transport-Abhängigkeiten blockieren das Löschen; Warnungen werden überstimmt. Wirklich fortfahren?",
           "onClick": "MIGHUB_DeleteInstanceChecked($id, $AnalyzeInstanceID, $DeleteConfirmed);"
+        }
+      ]
+    },
+    {
+      "type": "ExpansionPanel",
+      "caption": "📖 Migrations-Nachweis (dauerhaftes Protokoll)",
+      "items": [
+        {
+          "type": "Label",
+          "caption": "Jeder ECHTE Migrations-/Übernahmelauf wird hier dauerhaft protokolliert (bleibt über Formular-Neuöffnungen und weitere Läufe erhalten) — zur Nachvollziehbarkeit, insbesondere bei abrechnungsrelevanten Variablen. Probeläufe erscheinen hier nicht."
+        },
+        {
+          "type": "List",
+          "name": "MigrationLog",
+          "caption": "Protokoll (neueste zuerst)",
+          "rowCount": 10,
+          "add": false,
+          "delete": false,
+          "columns": [
+            {
+              "caption": "Zeitpunkt",
+              "name": "Timestamp",
+              "width": "160px"
+            },
+            {
+              "caption": "Modus",
+              "name": "Mode",
+              "width": "110px"
+            },
+            {
+              "caption": "Alte Variable",
+              "name": "OldName",
+              "width": "180px"
+            },
+            {
+              "caption": "Neue Variable",
+              "name": "NewName",
+              "width": "180px"
+            },
+            {
+              "caption": "Erfolg",
+              "name": "Success",
+              "width": "80px"
+            },
+            {
+              "caption": "Grund",
+              "name": "Reason",
+              "width": "auto"
+            }
+          ],
+          "values": []
+        },
+        {
+          "type": "Button",
+          "caption": "Protokoll leeren",
+          "confirm": "Das dauerhafte Migrations-Protokoll wirklich leeren?",
+          "onClick": "MIGHUB_ClearMigrationLog($id);"
         }
       ]
     }
