@@ -97,6 +97,19 @@ wirkt auf adoptierte und native Variablen identisch. Am echten Migrationsziel (S
 die Bindung automatisch — Nachweis daher erst beim ersten echten Lauf (Testinstanz ohne Host
 kann ihn prinzipiell nicht erbringen).
 
+**Zweiter, unabhängiger Gate (Fund InverterHub, Live-Debugging, Commit 2d8228f):** Liegt die
+Steuervariable NICHT direkt unter der Instanz, sondern in einer per `IPS_SetParent()`
+organisierten Unterkategorie, bindet `$this->EnableAction($Ident)` sie nicht korrekt — auch bei
+Status 102. Symptom: `IPS_RequestAction()`/WebFront-Klick läuft fehlerfrei, aber wirkungslos,
+`VariableAction` bleibt `0`. Betrifft uns direkt: Adoption hängt Variablen GENAU in solche
+Unterkategorien um (z. B. `ctl_ems_power` in die Control-Kategorie) — exakt das auslösende Muster.
+Ob ein Zielmodul das schon nach InverterHubs Fix-Vorbild behandelt (Variable kurz zur Instanz
+zurückhängen → `EnableAction()` → zurück in die Kategorie), ist ZIELMODUL-Sache, keine Adoptions-
+Aufgabe von uns — aber es relativiert die bisherige Aussage „am echten Ziel kommt die Bindung
+automatisch": das gilt nur, wenn das Zielmodul diesen Stolperstein selbst umschifft. Bei
+InverterHub GoodWe seit 2d8228f behoben. Live-Nachweis am ersten echten Lauf bleibt daher umso
+wichtiger.
+
 **Befund Anzeigeprofil:** Das Zielmodul setzt beim Wiederverwenden KEIN Profil (respektiert die
 Stable-Regel „Custom-Profile nicht in ApplyChanges überschreiben"). Eine echte Alt-Variable behält
 ihr eigenes altes Profil (Objekt-ID erhalten), zeigt also das QUELL-Profil, nicht das des Ziels.
