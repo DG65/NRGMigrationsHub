@@ -312,6 +312,15 @@ class MigrationsHub extends IPSModule
             return $fail('Alte Variable existiert nicht');
         }
         if (!IPS_VariableExists($newVariableID)) {
+            // Idempotenz-Fall: AdoptVariable() ist die einzige Stelle, die die
+            // frische Modul-Variable löscht (Schritt 1 im scharfen Lauf). Fehlt
+            // sie beim erneuten Aufruf desselben Paares, wurde dieses Paar
+            // vermutlich in einem früheren Lauf schon adoptiert — statt eines
+            // verwirrenden generischen Fehlers das klar so benennen, ohne einen
+            // neuen (unnötigen) Preflight-Sonden-Lauf zu versuchen.
+            if (IPS_ObjectExists($oldVariableID)) {
+                return ['success' => true, 'mode' => 'Adoption', 'reason' => 'vermutlich bereits adoptiert (Zielvariable existiert nicht mehr — kein erneuter Versuch nötig)', 'fallback' => false, 'dryRun' => $dryRun];
+            }
             return $fail('Neue (Modul-)Variable existiert nicht');
         }
         if ($oldVariableID === $newVariableID) {
