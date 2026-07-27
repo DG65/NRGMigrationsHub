@@ -98,8 +98,29 @@
       "onClick": "MIGHUB_AddSourceVariablesToMigrations($id, $SourceVariables, $Migrations, $TargetInstanceID);"
     },
     {
-      "type": "Label",
-      "caption": "Schritt 3: Zielvorschläge (anhand gleichem Ident) prüfen, fehlende Ziele über das Suchfeld wählen (Klick auf die Zeile → Variablenauswahl)"
+      "type": "RowLayout",
+      "items": [
+        {
+          "type": "Label",
+          "caption": "Schritt 3: Zielvorschläge (anhand gleichem Ident) prüfen, fehlende Ziele über das Suchfeld wählen (Klick auf die Zeile → Variablenauswahl)"
+        },
+        {
+          "type": "PopupButton",
+          "caption": "ℹ️",
+          "popup": {
+            "items": [
+              {
+                "type": "Label",
+                "caption": "Referenzen (Alt-Variable): zeigt, ob die Variable archiviert wird und wie viele WebFront-Verknüpfungen auf sie zeigen — Hinweis, wie wichtig eine sorgfältige Zuordnung für diesen Datenpunkt ist."
+              },
+              {
+                "type": "Label",
+                "caption": "Plausibel (Ergebnisliste weiter unten): vergleicht nach der Migration den Wert der alten mit dem der neuen Variable. \"ja\" = gleich, \"bitte prüfen\" = unterschiedlich (z. B. bei Faktor- oder Vorzeichen-Unterschieden zwischen Alt- und Neu-Modul), \"entfällt (Simulation)\" = im Probelauf noch kein echter Wertevergleich möglich."
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "type": "List",
