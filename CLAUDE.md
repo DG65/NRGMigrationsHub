@@ -193,6 +193,17 @@ Erkenntnisse aus bisherigen Store-Reviews im Verbund — bei jeder Änderung ein
   jedem Fix/Update** (nicht nur großen Releases) — bei jeder Änderung prüfen "gehört da was ins
   Neu-Panel?", Ergebnis darf "nein" sein. Layout allgemein: logische Gruppierung, Step-by-Step
   ohne Scroll-Zickzack, Feldkanten auf einer Linie.
+- **Grundregel: keine eigene Anlage als Norm annehmen** (Verbund-Konvention, ausgelöst durch einen
+  echten Usability-Mangel bei EMS — ein Panel stellte GoodWe als Pflicht dar, obwohl SMA/Fronius/
+  etc. genauso unterstützt werden). Vor jedem `beta`→`main`-Wechsel **"Neuinstallations-
+  Simulation"** abarbeiten (Punkt 12 der Symcon-Store-Review-Checkliste, Details EMS/SUITE.md):
+  Formular als hardware-/regionsfremder Nutzer durchgehen; Fabrikate/Beispiele nur als "z. B.";
+  Discovery-vs-manuell an jeder Stelle klarstellen; Default-Werte dürfen nie eigene
+  Sonderkonfiguration widerspiegeln; Volltextsuche nach eigenen IDs/PLZ/Kampagnennamen; wo
+  möglich zweite Session gegenprüfen lassen. Für MigrationsHub bereits geprüft (23.07.2026):
+  generisches Werkzeug ohne hartkodierten Hersteller, README-Beispiele bereits "z. B."-gerahmt;
+  zwei Code-Kommentare mit realen Instanz-IDs aus einer Live-Analyse (nicht laufzeitrelevant, aber
+  gegen den Geist der Regel) auf generische Formulierung umgestellt.
 
 ## Eigenständigkeit prüfen: `.tools/check-standalone.php`
 

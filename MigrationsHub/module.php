@@ -257,7 +257,7 @@ class MigrationsHub extends IPSModule
                 // ein bereits geloggtes Ziel still zu überschreiben wäre falsch.
                 // Wichtig: das prüft tatsächlich vorhandene Werte, nicht nur den
                 // Logging-Status (eine deaktiviert-geloggte Variable kann trotzdem
-                // Altwerte im Archiv haben, siehe MeterHub-Fund #40325).
+                // Altwerte im Archiv haben — realer Fall aus einer MeterHub-Analyse).
                 return ['success' => false, 'reason' => 'Zielvariable hat bereits Archivhistorie', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
             }
             if ($dryRun) {
@@ -675,7 +675,7 @@ class MigrationsHub extends IPSModule
     // physikalische Größe liegt oft zweimal vor, um Faktor 1000 versetzt (z. B.
     // »…_Wh« und »…_kWh«). Liefert Map Wh-VariableID => Name der kWh-Variante,
     // damit der Aufrufer die Wh-Variante markieren und die kWh-Variante
-    // bevorzugen kann (belegter Fall aus der MeterHub-Analyse #40078).
+    // bevorzugen kann (belegter Fall aus einer MeterHub-Analyse).
     private function DetectWhTwins(array $rows): array
     {
         $byBase = [];
