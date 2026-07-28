@@ -106,7 +106,7 @@
         },
         {
           "type": "PopupButton",
-          "caption": "i",
+          "caption": "?",
           "width": "70px",
           "popup": {
             "items": [
