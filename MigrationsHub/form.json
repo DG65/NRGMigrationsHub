@@ -289,7 +289,7 @@
         {
           "type": "Button",
           "caption": "Übernahme (Adoption) jetzt ausführen",
-          "confirm": "Übernahme-Modus: die alten Variablen werden unter die neuen Instanzen gehängt (Objekt-ID bleibt erhalten). Eine Preflight-Sonde sichert je Ident ab; wo Übernahme nicht geht, wird auf AC_ChangeVariableID zurückgefallen. Wirklich fortfahren?",
+          "confirm": "Übernahme-Modus: Die alten Variablen werden unter die neuen Instanzen gehängt — ihre Kennung (und damit Archivhistorie und alle Verknüpfungen) bleibt dabei erhalten. Vor jedem Datenpunkt wird zuerst unauffällig geprüft, ob das sicher möglich ist; wo nicht, wird stattdessen die Archivhistorie klassisch auf die neue Variable umgehängt. Wirklich fortfahren?",
           "onClick": "MIGHUB_RunAdoptions($id, $Confirmed, $Migrations);"
         }
       ]
