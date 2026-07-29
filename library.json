@@ -1,7 +1,7 @@
 {
   "id": "{4E96A5B5-515B-41CB-B8A9-8D9BC67C21BB}",
   "author": "DG65",
-  "name": "NRGMigrationsHub for IP-Symcon",
+  "name": "NRG-Stack MigrationsHub for IP-Symcon",
   "url": "https://github.com/DG65/NRGMigrationsHub",
   "compatibility": {
     "version": "9.0"
