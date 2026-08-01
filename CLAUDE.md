@@ -12,6 +12,18 @@ Sitzungen** gearbeitet:
 - **ChargerHub**: Wallboxen per Modbus TCP — https://github.com/DG65/ChargerHub
 - **EMS**: koordinierende Instanz — https://github.com/DG65/EMS
 
+## Discovery-Integration (API für andere Module)
+
+Damit Migration Teil des normalen Geräte-Scans werden kann statt ein separates, erst zu
+findendes Werkzeug: `MIGHUB_FindLegacyCandidates($id, $host, $port=0, $unitId=0): array` und
+`MIGHUB_PrefillMigration($id, $oldInstanceID, $newInstanceID): void`. Matching **immer über
+Host/Port/Unit-ID, nie über den Namen** (zwei reale Namens-Fallen bereits erlebt: ModBus-Gateway
+namens "Goodwe Wechselrichter", fünf gleichnamige aber unterschiedliche "Siemens
+PAC2200"-Instanzen). Aufrufendes Modul: eigene MigrationsHub-Instanz bei Bedarf selbst per
+`IPS_CreateInstance('{330717BB-E309-41A2-90A8-FDA3179ED948}')` anlegen (kein API-Bedarf dafür),
+nach Bestätigung `PrefillMigration` aufrufen, dann per `OpenObjectButton` (Instanz-ID) im eigenen
+Formular dorthin navigieren. Abgestimmt mit InverterHub (29.07.2026).
+
 ## Sprachregel (Verbund-Vertrag, gilt für alle Module)
 
 Alles, was der Nutzer zu sehen bekommt, ist **deutsch**: Formularbeschriftungen, Hinweis- und

@@ -62,6 +62,87 @@ class MigrationsHub extends IPSModule
         $this->SetStatus(102);
     }
 
+    // --- Discovery-Integration für andere NRG-Stack-Module ---------------
+    //
+    // Damit die Migration Teil des normalen Geräte-Scans werden kann (statt
+    // ein separates Werkzeug, das der Nutzer erst finden muss): ein Hub-Modul
+    // wie InverterHub/MeterHub kann nach einem Discovery-Treffer bei uns
+    // nachfragen, ob es dafür schon eine Alt-Instanz gibt — und bei Zustimmung
+    // unsere Instanz direkt vorbelegt öffnen. Aufruf immer hinter
+    // function_exists('MIGHUB_...') absichern (Eigenständigkeitsregel).
+    //
+    // Ablauf für das aufrufende Modul:
+    // 1. Existiert noch keine MigrationsHub-Instanz, selbst eine anlegen
+    //    (IPS_CreateInstance('{330717BB-E309-41A2-90A8-FDA3179ED948}')) — dafür
+    //    braucht es keine Funktion von uns, das ist normale IPS-Handhabung.
+    // 2. MIGHUB_FindLegacyCandidates($migId, $host, $port, $unitId) aufrufen.
+    // 3. Bestätigt der Nutzer einen Treffer: MIGHUB_PrefillMigration($migId,
+    //    $oldInstanceID, $newInstanceID) aufrufen (setzt Quelle/Ziel bei uns).
+    // 4. Zur MigrationsHub-Instanz navigieren — dafür im eigenen Formular ein
+    //    "OpenObjectButton" auf die (jetzt vorbelegte) Instanz-ID einsetzen,
+    //    exakt das Element, das wir selbst für Skript-/Ereignis-Funde nutzen.
+
+    // Sucht unter allen Instanzen nach möglichen Alt-Instanzen mit passendem
+    // Host/Port/Unit-ID — NIE über den Namen, der ist frei vergeben und schon
+    // zweimal irreführend gewesen (ModBus-Gateway namens "Goodwe
+    // Wechselrichter", fünf gleichnamige, aber unterschiedliche "Siemens
+    // PAC2200"-Instanzen). $port/$unitId = 0 bedeutet "nicht einschränken".
+    public function FindLegacyCandidates(string $host, int $port = 0, int $unitId = 0): array
+    {
+        $candidates = [];
+        foreach (IPS_GetInstanceList() as $instanceID) {
+            $config = json_decode(@IPS_GetConfiguration($instanceID) ?: '', true);
+            if (!is_array($config)) {
+                continue;
+            }
+            $configHost = $this->ExtractConfigValue($config, ['Host', 'IP', 'IPAddress', 'Address']);
+            if ($configHost === null || strcasecmp((string) $configHost, $host) !== 0) {
+                continue;
+            }
+            if ($port > 0) {
+                $configPort = $this->ExtractConfigValue($config, ['Port']);
+                if ($configPort !== null && (int) $configPort !== $port) {
+                    continue;
+                }
+            }
+            if ($unitId > 0) {
+                $configUnitId = $this->ExtractConfigValue($config, ['UnitId', 'UnitID', 'SlaveId', 'SlaveID', 'ModbusUnitId']);
+                if ($configUnitId !== null && (int) $configUnitId !== $unitId) {
+                    continue;
+                }
+            }
+            $candidates[] = [
+                'InstanceID' => $instanceID,
+                'Name' => IPS_GetName($instanceID),
+                'ModuleName' => IPS_GetInstance($instanceID)['ModuleInfo']['ModuleName'] ?? '',
+            ];
+        }
+        return $candidates;
+    }
+
+    private function ExtractConfigValue(array $config, array $keys)
+    {
+        foreach ($keys as $key) {
+            if (isset($config[$key]) && $config[$key] !== '') {
+                return $config[$key];
+            }
+        }
+        return null;
+    }
+
+    // Belegt Quelle/Ziel dieser Instanz vor — die "Aktion", die ein anderes
+    // Modul nach einer bestätigten Discovery-Übereinstimmung aufrufen kann,
+    // bevor es den Nutzer per OpenObjectButton zu uns weiterleitet. Das ist
+    // eine externe Instanz, die unsere Properties setzt, keine Formular-
+    // Selbstpersistenz — die Stable-Regel dazu betrifft nur unsere EIGENEN
+    // Formular-Schaltflächen.
+    public function PrefillMigration(int $oldInstanceID, int $newInstanceID): void
+    {
+        $this->SetProperty('SourceInstanceID', $oldInstanceID);
+        $this->SetProperty('TargetInstanceID', $newInstanceID);
+        $this->ApplyChanges();
+    }
+
     // Befüllt die attribut-gestützten Checklisten beim Öffnen des Formulars —
     // deren Inhalt steht nicht in form.json ("values": []) und käme sonst
     // nach einem Neuöffnen leer zurück.
