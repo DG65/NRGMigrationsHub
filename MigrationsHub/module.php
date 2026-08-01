@@ -95,8 +95,7 @@ class MigrationsHub extends IPSModule
             if (!is_array($config)) {
                 continue;
             }
-            $configHost = $this->ExtractConfigValue($config, ['Host', 'IP', 'IPAddress', 'Address']);
-            if ($configHost === null || strcasecmp((string) $configHost, $host) !== 0) {
+            if (!$this->ConfigMatchesHost($config, $host)) {
                 continue;
             }
             if ($port > 0) {
@@ -128,6 +127,27 @@ class MigrationsHub extends IPSModule
             }
         }
         return null;
+    }
+
+    // Statt einer festen Schlüsselliste (die bei jedem neuen Modul mit einer
+    // abweichenden Benennung wie "IPAddressCharger" wieder danebenläge): jeden
+    // Konfigurationsschlüssel prüfen, dessen NAME nach Host/IP/Adresse klingt
+    // (unabhängig von Modul-Eigenheiten in der genauen Schreibweise), und
+    // dessen WERT dem gesuchten Host entspricht.
+    private function ConfigMatchesHost(array $config, string $host): bool
+    {
+        foreach ($config as $key => $value) {
+            if (!is_string($value) && !is_int($value)) {
+                continue;
+            }
+            if (!preg_match('/host|ip|address/i', (string) $key)) {
+                continue;
+            }
+            if (strcasecmp((string) $value, $host) === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Belegt Quelle/Ziel dieser Instanz vor — die "Aktion", die ein anderes
