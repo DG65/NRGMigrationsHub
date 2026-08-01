@@ -759,8 +759,20 @@ class MigrationsHub extends IPSModule
                 // zu verhindern.
                 $status = 'Wh-Zwilling → kWh-Variante »' . $whTwins[$oldID] . '« bevorzugen';
                 $suggestedNewID = 0;
+            } elseif ($suggestedNewID !== 0) {
+                $status = 'Vorschlag anhand Ident — bitte prüfen';
+            } elseif ($targetInstanceID !== 0) {
+                // Ident wurde in der GESAMTEN Zielinstanz gesucht (nicht nur
+                // unter den in Schritt 2 sichtbaren Zeilen) und nicht gefunden —
+                // das neue Modul kennt diesen Datenpunkt wahrscheinlich gar
+                // nicht. Klar von "einfach noch nicht zugeordnet" abgrenzen,
+                // damit vor dem späteren Löschen der Alt-Instanz nicht
+                // übersehen wird, dass hier keine automatische Zuordnung
+                // möglich ist — der Datenpunkt bleibt sonst auf der Alt-Instanz
+                // mitsamt Historie zurück.
+                $status = 'Kein Ziel im neuen Modul gefunden — bleibt sonst auf der Alt-Instanz';
             } else {
-                $status = $suggestedNewID !== 0 ? 'Vorschlag anhand Ident — bitte prüfen' : 'Ziel wählen';
+                $status = 'Ziel wählen';
             }
             $migrations[] = [
                 'OldVariableID' => $oldID,

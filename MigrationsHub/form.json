@@ -81,6 +81,10 @@
         {
           "type": "Label",
           "caption": "• Skript-/Ereignis-Funde sind eine Textsuche, keine Codeanalyse — auch Fehltreffer möglich. Bitte jeden Fund kurz selbst prüfen, bevor er abgehakt wird."
+        },
+        {
+          "type": "Label",
+          "caption": "• Hat die Alt-Instanz mehr Datenpunkte als das neue Modul kennt: Status \"Kein Ziel im neuen Modul gefunden\" bedeutet, dieser Datenpunkt bleibt unmigriert auf der Alt-Instanz (samt Historie) — kein Datenverlust, aber vor dem Löschen der Alt-Instanz beachten, der Abhängigkeits-Report warnt dort zusätzlich."
         }
       ]
     },
