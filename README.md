@@ -48,6 +48,42 @@ bereits Historie hat, und lehnt sonst ab.
    eintragen: `https://github.com/DG65/NRGMigrationsHub`
 2. Eine neue Instanz vom Typ **„MigrationsHub"** anlegen.
 
+## Ablauf Schritt für Schritt
+
+Die kurze Version steht auch im Formular selbst unter „📖 Dokumentation & Hilfe" — hier die
+ausführliche Fassung, falls du sie vorab lesen möchtest.
+
+**0. Zielmodul zuerst.** Bevor du MigrationsHub startest: die neue Hub-Instanz (z. B.
+InverterHub, MeterHub) installieren und konfigurieren. Dabei entstehen die neuen Datenpunkte
+bereits — aber **„Kommunikation aktiv" zunächst ausgeschaltet lassen**. Grund: die neuen
+Datenpunkte sollen noch keine eigenen Werte geloggt haben, wenn die alte Historie übertragen
+wird — sonst müsste MigrationsHub zwei sich überlappende Datenreihen zusammenführen, was es
+bewusst nicht automatisch tut.
+
+**1. MigrationsHub-Instanz anlegen** und im Formular Schritt 1 die Alt-Instanz (deine bisherige
+Lösung) und die eben vorbereitete Neu-Instanz auswählen.
+
+**2. Datenpunkte wählen.** „Alt-Datenpunkte laden" → gewünschte Zeilen ankreuzen (oder „Alle
+auswählen") → „in Migrationsliste übernehmen". Für Idents, die in beiden Instanzen identisch
+heißen, wird das Ziel automatisch vorgeschlagen.
+
+**3. Zuordnung prüfen.** Fehlende Ziele über das Suchfeld in der Migrationsliste ergänzen. Die
+Spalte „Referenzen" zeigt, ob ein Datenpunkt archiviert wird oder Verknüpfungen hat — je mehr,
+desto wichtiger eine sorgfältige Zuordnung. Mit „Referenzen suchen" zusätzlich prüfen, ob
+Skripte oder Ereignisse die alte Variablen-ID fest referenzieren, und die Fundliste abarbeiten.
+
+**4. Simulieren, dann ausführen.** Bestätigungsschalter setzen, zuerst „Übernahme simulieren
+(Probelauf)" — der schreibt nichts, zeigt aber, was passieren würde. Ergebnis durchsehen, dann
+„Übernahme (Adoption) jetzt ausführen". Wo die Übernahme technisch nicht möglich ist (z. B.
+unterschiedlicher Datentyp), fällt MigrationsHub automatisch auf den zweiten Weg (Verknüpfen)
+zurück — das steht dann so im Ergebnis.
+
+**5. Nachbereiten.** An der neuen Instanz „Kommunikation aktiv" einschalten. Verbliebene
+Skript-/Ereignis-Funde aus der Prüfliste abarbeiten. Zum Schluss die alte Instanz über „Instanz
+analysieren & löschen" prüfen — das Löschen wird automatisch blockiert, solange noch andere
+Instanzen als Verbindung (Transport) daran hängen.
+
 ## Lizenz
 
-MIT, siehe [LICENSE](LICENSE).
+[PolyForm Noncommercial 1.0.0](LICENSE) — private und nicht-kommerzielle Nutzung frei,
+gewerbliche Nutzung lizenzpflichtig (Kontakt: [DG65](https://github.com/DG65)).

@@ -6,6 +6,81 @@
       "caption": "…"
     },
     {
+      "type": "ExpansionPanel",
+      "caption": "📖 Dokumentation & Hilfe (Version 0.1.0)",
+      "expanded": false,
+      "items": [
+        {
+          "type": "Label",
+          "caption": "WOFÜR"
+        },
+        {
+          "type": "Label",
+          "caption": "MigrationsHub überträgt Datenpunkte einer alten Instanz (z. B. ein selbstgebautes Skript oder ein abgelöstes Modul) auf eine neue Hub-Instanz (z. B. InverterHub, MeterHub) — mitsamt Archivhistorie, WebFront-Verknüpfungen und, wo möglich, ganz ohne Datenverlust."
+        },
+        {
+          "type": "Label",
+          "caption": "VORAUSSETZUNGEN"
+        },
+        {
+          "type": "Label",
+          "caption": "1. Neue Instanz (z. B. InverterHub/MeterHub) VOR der Migration einrichten: installieren, konfigurieren, Datenpunkte einmal anlegen lassen."
+        },
+        {
+          "type": "Label",
+          "caption": "2. Wichtig: dort \"Kommunikation aktiv\" zunächst AUS lassen, bis die Migration abgeschlossen ist — sonst könnten die neuen Datenpunkte schon eigene Werte loggen, bevor die alte Historie übertragen wird. (Diesen Hinweis findest du auch im Doku-Panel des Zielmoduls selbst.)"
+        },
+        {
+          "type": "Label",
+          "caption": "SCHRITT FÜR SCHRITT"
+        },
+        {
+          "type": "Label",
+          "caption": "1. Schritt 1 unten: Alt-Instanz und Neu-Instanz auswählen."
+        },
+        {
+          "type": "Label",
+          "caption": "2. Schritt 2: \"Alt-Datenpunkte laden\", gewünschte Datenpunkte ankreuzen, in die Migrationsliste übernehmen."
+        },
+        {
+          "type": "Label",
+          "caption": "3. Schritt 3: Zielvorschläge prüfen, fehlende Ziele per Suchfeld ergänzen. \"Referenzen suchen\" nutzen und die Fundliste (Skripte/Ereignisse) abarbeiten."
+        },
+        {
+          "type": "Label",
+          "caption": "4. Bestätigungsschalter setzen, zuerst simulieren (Probelauf), Ergebnis prüfen, dann \"Übernahme (Adoption) jetzt ausführen\" — das ist der empfohlene, verlustfreie Weg."
+        },
+        {
+          "type": "Label",
+          "caption": "5. Danach an der neuen Instanz \"Kommunikation aktiv\" einschalten."
+        },
+        {
+          "type": "Label",
+          "caption": "6. Zum Schluss die alte Instanz über \"Instanz analysieren & löschen\" prüfen und erst löschen, wenn der Report keine Blockade mehr zeigt."
+        },
+        {
+          "type": "Label",
+          "caption": "BEKANNTE FALLSTRICKE"
+        },
+        {
+          "type": "Label",
+          "caption": "• Wh/kWh-Zwillinge: manche Alt-Datenpunkte gibt es doppelt, einmal in Wh und einmal in kWh (Faktor 1000 versetzt). MigrationsHub markiert das automatisch und schlägt die kWh-Variante vor."
+        },
+        {
+          "type": "Label",
+          "caption": "• \"Übernahme\" schlägt fehl, wenn Ident oder Datentyp nicht zum Zielmodul passen — dann wird automatisch auf \"Verknüpfen\" zurückgefallen, sichtbar in der Ergebnisliste."
+        },
+        {
+          "type": "Label",
+          "caption": "• Aktionsbindung (z. B. Steuerungs-Schieberegler) an der neuen Instanz kommt erst, wenn diese aktiv UND mit gültiger Verbindung läuft — nicht sofort nach der Migration sichtbar, das ist normal."
+        },
+        {
+          "type": "Label",
+          "caption": "• Skript-/Ereignis-Funde sind eine Textsuche, keine Codeanalyse — auch Fehltreffer möglich. Bitte jeden Fund kurz selbst prüfen, bevor er abgehakt wird."
+        }
+      ]
+    },
+    {
       "type": "Label",
       "caption": "Schritt 1: Alt-Instanz (migrieren von) und Neu-Instanz (migrieren nach) wählen"
     },
