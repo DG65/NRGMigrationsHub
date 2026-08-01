@@ -949,22 +949,68 @@ class MigrationsHub extends IPSModule
     }
 
     // Führt den Adoptions-Lauf wirklich aus (Preflight-Sonde + Profil-Nachzug
-    // + AC_ChangeVariableID-Rückfall). Zweifach abgesichert wie RunMigrations.
-    public function RunAdoptions(bool $confirmed, $migrations): void
+    // + AC_ChangeVariableID-Rückfall). Dreifach abgesichert: der bestehende
+    // Bestätigungsschalter, das native confirm() des Buttons UND der eigene
+    // Risiko-Schalter $riskAcknowledged, der die destruktive Prune-Kante
+    // ausdrücklich benennt — die Übernahme funktioniert technisch mit jedem
+    // Zielmodul (die Preflight-Sonde sichert generisch ab), aber nur unsere
+    // eigenen Suite-Module haben wir selbst gegen dieses Verhalten getestet.
+    // Bei Fremdmodulen ist dieser Schalter die "Einverständniserklärung", auf
+    // die der Nutzer bewusst eingeht.
+    public function RunAdoptions(bool $confirmed, bool $riskAcknowledged, $migrations): void
     {
         $migrations = $this->NormalizeFormList($migrations);
-        if (!$confirmed) {
+        if (!$confirmed || !$riskAcknowledged) {
             $this->UpdateFormField('Results', 'values', json_encode([[
                 'OldName' => '', 'NewName' => '', 'Success' => 'nein',
-                'Reason' => 'Abgebrochen: Bestätigungsschalter nicht gesetzt',
+                'Reason' => 'Abgebrochen: ' . (!$confirmed ? 'Bestätigungsschalter' : 'Risiko-Schalter (Prune-Kante)') . ' nicht gesetzt',
                 'OldValue' => '', 'NewValue' => '', 'Plausible' => '-',
             ]]));
             return;
         }
+
+        // Quell-Instanz je Alt-Variable VOR der Übernahme merken — danach hat
+        // sich der Parent der Variable ja gerade geändert.
+        $sourceInstances = [];
+        foreach ($migrations as $row) {
+            $oldID = (int) $row['OldVariableID'];
+            if (IPS_VariableExists($oldID)) {
+                $src = $this->FindOwningInstance($oldID);
+                if ($src !== 0) {
+                    $sourceInstances[$src] = true;
+                }
+            }
+        }
+
         [$migrations, $results] = $this->ProcessAdoptions($migrations, false);
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
-        $this->UpdateFormField('Results', 'values', json_encode($results));
         $this->AppendToMigrationLog(array_map(fn ($r) => $r + ['Mode' => 'Übernahme'], $results));
+
+        // Automatischer Hinweis: Quell-Instanzen, die durch diesen Lauf keine
+        // Kindvariablen mehr haben, sind vollständig übernommen — direkt zur
+        // Lösch-Prüfung überleiten statt den Nutzer manuell suchen zu lassen.
+        $emptied = [];
+        foreach (array_keys($sourceInstances) as $instanceID) {
+            if (IPS_InstanceExists($instanceID) && $this->CollectVariableIDs($instanceID) === []) {
+                $emptied[] = $instanceID;
+            }
+        }
+        if ($emptied !== []) {
+            $names = array_map(fn ($id) => '»' . IPS_GetName($id) . '« (#' . $id . ')', $emptied);
+            $results[] = [
+                'OldName' => '',
+                'NewName' => '',
+                'Success' => 'ja',
+                'Reason' => '💡 Alt-Instanz(en) jetzt leer, alle Datenpunkte übernommen — bitte prüfen & löschen: ' . implode(', ', $names) . '. „Zu prüfende Instanz" im Bereich „Instanz analysieren & löschen" wurde vorbelegt.',
+                'OldValue' => '',
+                'NewValue' => '',
+                'Plausible' => '-',
+            ];
+            $this->UpdateFormField('AnalyzeInstanceID', 'value', $emptied[0]);
+            $this->UpdateFormField('InstanceReport', 'values', json_encode($this->BuildInstanceReport($emptied[0])));
+        }
+
+        $this->UpdateFormField('Results', 'values', json_encode($results));
     }
 
     // Gemeinsame Schleife für RunAdoptions()/SimulateAdoptions().

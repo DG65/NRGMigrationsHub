@@ -64,11 +64,21 @@ Zielmodul neu an → stiller Fehlschlag; dann Rückfall auf `AC_ChangeVariableID
 in `ApplyChanges` per Ident pflegen (Suite-Module ja, Fremdmodule nicht garantiert). Umgeht das
 Cutover-/Überlappungsproblem und den `AC_AddLoggedValues`-Mengenhänger komplett.
 
-**Startumfang laut Dietmar: nur eigene Suite-Module.** Für Fremdmodule bleibt
-`AC_ChangeVariableID` der Default; Adoption dort höchstens experimentell mit Kompatibilitätstest
-und Warnung. Vor dem Bau: End-to-End-Test an EINER Wegwerf-Variable gegen eine frische
-InverterHub-GoodWe-Instanz (Objekt-ID erhalten? Modul bespielt sie? Aktion/Profil sitzt?
-Historie sichtbar?).
+**Startumfang laut Dietmar: zunächst nur eigene Suite-Module gebaut/getestet.** Vor dem Bau:
+End-to-End-Test an EINER Wegwerf-Variable gegen eine frische InverterHub-GoodWe-Instanz
+(Objekt-ID erhalten? Modul bespielt sie? Aktion/Profil sitzt? Historie sichtbar?) — erledigt,
+siehe Testergebnis unten.
+
+**Erweiterung (Dietmar, 29.07.2026): Übernahme auch für Fremdmodule, mit explizitem
+Einverständnis.** Die Suite-only-Beschränkung war nie im Code erzwungen — `AdoptVariable()`
+leitet Ident/Typ/Profil/Instanz generisch aus der Zielvariable ab, die Preflight-Sonde sichert
+jedes Zielmodul unabhängig von dessen Herkunft ab. Statt einer unzuverlässigen "ist das ein
+Suite-Modul"-Erkennung gilt jetzt: ein eigener Risiko-Schalter (`RiskAcknowledged`, getrennt vom
+allgemeinen Bestätigungsschalter) muss für JEDEN Übernahme-Lauf gesetzt sein, mit explizitem
+Hinweis auf die destruktive Prune-Kante — bei eigenen Suite-Modulen ist das Verhalten getestet,
+bei Fremdmodulen nicht garantiert. Nach einem Lauf, der eine Alt-Instanz vollständig entleert,
+schlägt das Formular automatisch vor, sie über "Instanz analysieren & löschen" zu prüfen
+(`AnalyzeInstanceID` wird vorbelegt, Report direkt mitgeliefert).
 
 **Scharfe Kante (aus InverterHub-Code bestätigt): Adoption schlägt DESTRUKTIV fehl.** Der
 GoodWe-Treiber ruft in `ApplyChanges` zuerst `PruneForeignObjects()` auf — das **löscht** jede

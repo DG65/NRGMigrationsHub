@@ -56,7 +56,7 @@
         },
         {
           "type": "Label",
-          "caption": "6. Zum Schluss die alte Instanz über \"Instanz analysieren & löschen\" prüfen und erst löschen, wenn der Report keine Blockade mehr zeigt."
+          "caption": "6. Sind bei einer Alt-Instanz danach keine Datenpunkte mehr übrig, schlägt MigrationsHub das automatisch vor. Sonst manuell über \"Instanz analysieren & löschen\" prüfen und erst löschen, wenn der Report keine Blockade mehr zeigt."
         },
         {
           "type": "Label",
@@ -69,6 +69,10 @@
         {
           "type": "Label",
           "caption": "• \"Übernahme\" schlägt fehl, wenn Ident oder Datentyp nicht zum Zielmodul passen — dann wird automatisch auf \"Verknüpfen\" zurückgefallen, sichtbar in der Ergebnisliste."
+        },
+        {
+          "type": "Label",
+          "caption": "• \"Übernahme\" funktioniert mit jedem Zielmodul, nicht nur NRG-Stack-Modulen — bei fremden Modulen ist das Verhalten aber nicht getestet, deshalb der eigene Risiko-Schalter weiter unten vor dem Ausführen."
         },
         {
           "type": "Label",
@@ -346,12 +350,21 @@
     },
     {
       "type": "Label",
-      "caption": "Zwei Migrationswege: ÜBERNAHME (Adoption) ist verlustfrei und bevorzugt — die alte Variable wird selbst übernommen, Historie und alle Referenzen bleiben ohne Umbau erhalten (nur eigene Suite-Module). VERKNÜPFEN (AC_ChangeVariableID) hängt die Historie auf die neue Variable um; Rückfall, wo Übernahme nicht geht (Typ passt nicht)."
+      "caption": "Zwei Migrationswege: ÜBERNAHME (Adoption) ist verlustfrei und bevorzugt — die alte Variable wird selbst übernommen, Historie und alle Referenzen bleiben ohne Umbau erhalten. Funktioniert mit jedem Zielmodul (die Preflight-Sonde prüft jeden Datenpunkt vorab); für fremde (Nicht-NRG-Stack-)Module gilt der Risiko-Hinweis unten. VERKNÜPFEN (AC_ChangeVariableID) hängt die Historie auf die neue Variable um; Rückfall, wo Übernahme nicht geht (Typ passt nicht)."
+    },
+    {
+      "type": "Label",
+      "caption": "⚠️ Risiko bei ÜBERNAHME: Erkennt das Zielmodul einen Datenpunkt beim Speichern nicht (falscher Ident/Typ/inaktive Gruppe), kann es ihn ERSATZLOS LÖSCHEN, samt Archivhistorie. Die Preflight-Sonde testet das vorab an einer Wegwerf-Variable — bei eigenen NRG-Stack-Modulen ist dieses Verhalten getestet, bei fremden Modulen nicht garantiert."
     },
     {
       "type": "CheckBox",
       "name": "Confirmed",
       "caption": "Ich habe die Zuordnung oben geprüft (inkl. Simulation) und bin sicher, dass sie korrekt ist"
+    },
+    {
+      "type": "CheckBox",
+      "name": "RiskAcknowledged",
+      "caption": "Einverständnis: Ich habe das Risiko bei ÜBERNAHME (mögliches Löschen samt Historie bei falscher Zuordnung) gelesen und bin einverstanden"
     },
     {
       "type": "RowLayout",
@@ -365,7 +378,7 @@
           "type": "Button",
           "caption": "Übernahme (Adoption) jetzt ausführen",
           "confirm": "Übernahme-Modus: Die alten Variablen werden unter die neuen Instanzen gehängt — ihre Kennung (und damit Archivhistorie und alle Verknüpfungen) bleibt dabei erhalten. Vor jedem Datenpunkt wird zuerst unauffällig geprüft, ob das sicher möglich ist; wo nicht, wird stattdessen die Archivhistorie klassisch auf die neue Variable umgehängt. Wirklich fortfahren?",
-          "onClick": "MIGHUB_RunAdoptions($id, $Confirmed, $Migrations);"
+          "onClick": "MIGHUB_RunAdoptions($id, $Confirmed, $RiskAcknowledged, $Migrations);"
         }
       ]
     },

@@ -21,7 +21,15 @@ alten. Ohne Migration reißt die Historie an dieser Stelle ab. MigrationsHub üb
 sie behält ihre Objekt-ID, damit bleiben Historie **und** alle Referenzen ohne Umbau intakt. Die
 alte Variable wird unter die neue Instanz gehängt und auf den erwarteten Ident umgestellt; das
 Zielmodul verwendet sie beim `ApplyChanges` wieder. Eine Preflight-Sonde sichert jeden Ident vorab
-ab, Zielprofil und Aggregationstyp werden nachgezogen. Nur für die eigenen Suite-Module.
+ab, Zielprofil und Aggregationstyp werden nachgezogen. Funktioniert mit jedem Zielmodul, da die
+Preflight-Sonde generisch prüft, ob die Übernahme sicher möglich ist — bei fremden (Nicht-NRG-
+Stack-)Modulen muss der Nutzer im Formular ausdrücklich ein Risiko bestätigen, weil ein
+Zielmodul einen unerkannten Datenpunkt beim Speichern ersatzlos löschen kann (getestetes
+Verhalten nur bei den eigenen Suite-Modulen garantiert).
+
+**Nach vollständiger Übernahme:** Ist eine Alt-Instanz danach ohne verbliebene Datenpunkte,
+schlägt MigrationsHub automatisch vor, sie über „Instanz analysieren & löschen" zu prüfen und
+zu entfernen.
 
 **2. Verknüpfen (`AC_ChangeVariableID`) — Rückfall.** Überträgt die Logging-Historie auf die neue
 Variable und hängt Verknüpfungen um. `AC_ChangeVariableID($ArchiveID, $OldVariableID,
@@ -79,8 +87,10 @@ unterschiedlicher Datentyp), fällt MigrationsHub automatisch auf den zweiten We
 zurück — das steht dann so im Ergebnis.
 
 **5. Nachbereiten.** An der neuen Instanz „Kommunikation aktiv" einschalten. Verbliebene
-Skript-/Ereignis-Funde aus der Prüfliste abarbeiten. Zum Schluss die alte Instanz über „Instanz
-analysieren & löschen" prüfen — das Löschen wird automatisch blockiert, solange noch andere
+Skript-/Ereignis-Funde aus der Prüfliste abarbeiten. Ist eine Alt-Instanz nach der Übernahme
+vollständig leer, schlägt MigrationsHub das Löschen automatisch vor; sonst die alte Instanz
+manuell über „Instanz analysieren & löschen" prüfen — das Löschen wird automatisch blockiert,
+solange noch andere
 Instanzen als Verbindung (Transport) daran hängen.
 
 ## Lizenz
