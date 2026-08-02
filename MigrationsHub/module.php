@@ -114,9 +114,28 @@ class MigrationsHub extends IPSModule
                 'InstanceID' => $instanceID,
                 'Name' => IPS_GetName($instanceID),
                 'ModuleName' => IPS_GetInstance($instanceID)['ModuleInfo']['ModuleName'] ?? '',
+                // Bei mehreren Treffern mit identischer IP (z. B. zwei baugleiche
+                // Geräte ohne unterscheidbare Port/Unit-ID) kann das aufrufende
+                // Modul den Pfad als Unterscheidungshinweis anzeigen, statt
+                // blind zu raten — echter Fall: zwei goE-Charger-Instanzen
+                // gleicher IP, eine unter "API", eine unter "Sicherung".
+                'Path' => $this->BuildObjectPath($instanceID),
             ];
         }
         return $candidates;
+    }
+
+    // Kategorie-Pfad eines Objekts von der Wurzel bis (ausschließlich) zum
+    // Objekt selbst, z. B. "Geräte / Module / Wallbox / Sicherung".
+    private function BuildObjectPath(int $objectID): string
+    {
+        $parts = [];
+        $cursor = IPS_GetObject($objectID)['ParentID'];
+        while ($cursor > 0) {
+            array_unshift($parts, IPS_GetName($cursor));
+            $cursor = IPS_GetObject($cursor)['ParentID'];
+        }
+        return implode(' / ', $parts);
     }
 
     private function ExtractConfigValue(array $config, array $keys)
