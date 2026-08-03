@@ -87,10 +87,18 @@ class MigrationsHub extends IPSModule
     // zweimal irreführend gewesen (ModBus-Gateway namens "Goodwe
     // Wechselrichter", fünf gleichnamige, aber unterschiedliche "Siemens
     // PAC2200"-Instanzen). $port/$unitId = 0 bedeutet "nicht einschränken".
-    public function FindLegacyCandidates(string $host, int $port = 0, int $unitId = 0): array
+    public function FindLegacyCandidates(string $host, int $port = 0, int $unitId = 0, int $excludeInstanceID = 0): array
     {
         $candidates = [];
         foreach (IPS_GetInstanceList() as $instanceID) {
+            // Verhindert "migriere von deiner eigenen frisch angelegten
+            // Instanz" — das aufrufende Modul übergibt hier üblicherweise die
+            // gerade selbst erstellte Zielinstanz, damit sie nicht versehentlich
+            // als eigene Alt-Instanz erkannt wird (echter Fall: dieselbe IP,
+            // Ziel- und Such-Host identisch, kurz nach dem Anlegen).
+            if ($excludeInstanceID !== 0 && $instanceID === $excludeInstanceID) {
+                continue;
+            }
             $config = json_decode(@IPS_GetConfiguration($instanceID) ?: '', true);
             if (!is_array($config)) {
                 continue;

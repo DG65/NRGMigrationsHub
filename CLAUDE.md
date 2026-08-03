@@ -15,14 +15,19 @@ Sitzungen** gearbeitet:
 ## Discovery-Integration (API für andere Module)
 
 Damit Migration Teil des normalen Geräte-Scans werden kann statt ein separates, erst zu
-findendes Werkzeug: `MIGHUB_FindLegacyCandidates($id, $host, $port=0, $unitId=0): array` und
-`MIGHUB_PrefillMigration($id, $oldInstanceID, $newInstanceID): void`. Matching **immer über
-Host/Port/Unit-ID, nie über den Namen** (zwei reale Namens-Fallen bereits erlebt: ModBus-Gateway
-namens "Goodwe Wechselrichter", fünf gleichnamige aber unterschiedliche "Siemens
-PAC2200"-Instanzen). Aufrufendes Modul: eigene MigrationsHub-Instanz bei Bedarf selbst per
+findendes Werkzeug: `MIGHUB_FindLegacyCandidates($id, $host, $port=0, $unitId=0,
+$excludeInstanceID=0): array` und `MIGHUB_PrefillMigration($id, $oldInstanceID,
+$newInstanceID): void`. Matching **immer über Host/Port/Unit-ID, nie über den Namen** (zwei
+reale Namens-Fallen bereits erlebt: ModBus-Gateway namens "Goodwe Wechselrichter", fünf
+gleichnamige aber unterschiedliche "Siemens PAC2200"-Instanzen). `$excludeInstanceID`: die
+eigene, gerade frisch angelegte Zielinstanz übergeben, damit sie sich nicht selbst als Alt-
+Instanz findet (echter Fall mit ChargerHub, 03.08.2026: neue Instanz und Alt-Instanz zufällig
+kurzzeitig gleiche IP, ohne Ausschluss wäre "migriere von dir selbst" möglich gewesen).
+Aufrufendes Modul: eigene MigrationsHub-Instanz bei Bedarf selbst per
 `IPS_CreateInstance('{330717BB-E309-41A2-90A8-FDA3179ED948}')` anlegen (kein API-Bedarf dafür),
 nach Bestätigung `PrefillMigration` aufrufen, dann per `OpenObjectButton` (Instanz-ID) im eigenen
-Formular dorthin navigieren. Abgestimmt mit InverterHub (29.07.2026).
+Formular dorthin navigieren. Abgestimmt mit InverterHub (29.07.2026), Ausschluss-Parameter mit
+ChargerHub (03.08.2026).
 
 ## Sprachregel (Verbund-Vertrag, gilt für alle Module)
 
