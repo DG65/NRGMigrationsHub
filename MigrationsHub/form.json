@@ -172,6 +172,11 @@
           "type": "Button",
           "caption": "Alle abwählen",
           "onClick": "MIGHUB_SetAllSourceVariablesSelected($id, $SourceVariables, false);"
+        },
+        {
+          "type": "Button",
+          "caption": "Nur archivierte/verknüpfte auswählen",
+          "onClick": "MIGHUB_SelectOnlyReferencedSourceVariables($id, $SourceVariables);"
         }
       ]
     },

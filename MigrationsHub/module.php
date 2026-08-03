@@ -946,6 +946,27 @@ class MigrationsHub extends IPSModule
         $this->UpdateFormField('SourceVariables', 'values', json_encode($sourceVariables));
     }
 
+    // Kreuzt nur die Datenpunkte an, bei denen Migration überhaupt etwas
+    // bringt: archiviert (Historie ginge sonst verloren) oder verknüpft
+    // (WebFront-Kacheln würden ins Leere zeigen). Alles andere legt das neue
+    // Modul ohnehin frisch an — dafür braucht es keine Übernahme. Reduziert
+    // bei Fremdmodulen mit vielen Datenpunkten (z. B. go-e-Charger, 60
+    // Idents, aber oft nur eine Handvoll mit echter Historie) die Auswahl auf
+    // das Wesentliche, statt "alles ankreuzen und Ballast mitschleppen".
+    public function SelectOnlyReferencedSourceVariables($sourceVariables): void
+    {
+        $sourceVariables = $this->NormalizeFormList($sourceVariables);
+        $linkCounts = $this->BuildLinkCountMap();
+        foreach ($sourceVariables as &$row) {
+            $variableID = (int) $row['VariableID'];
+            $hasArchive = $this->FindArchiveInstance($variableID) !== 0;
+            $hasLinks = ($linkCounts[$variableID] ?? 0) > 0;
+            $row['Selected'] = $hasArchive || $hasLinks;
+        }
+        unset($row);
+        $this->UpdateFormField('SourceVariables', 'values', json_encode($sourceVariables));
+    }
+
     // --- Referenz-Scan: Skripte/Events, die die Alt-Variable evtl. fest per
     // ID referenzieren. AC_ChangeVariableID und die Link-Umhängung erfassen
     // nur Archiv und WebFront-Links — Skriptcode, Event-Trigger, IPSView-
