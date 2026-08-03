@@ -178,7 +178,7 @@
     {
       "type": "Button",
       "caption": "Ausgewählte Alt-Datenpunkte → in Migrationsliste übernehmen",
-      "onClick": "MIGHUB_AddSourceVariablesToMigrations($id, $SourceVariables, $Migrations, $TargetInstanceID);"
+      "onClick": "MIGHUB_AddSourceVariablesToMigrations($id, $SourceVariables, $Migrations, $TargetInstanceID, $SourceInstanceID);"
     },
     {
       "type": "RowLayout",

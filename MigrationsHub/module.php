@@ -756,7 +756,7 @@ class MigrationsHub extends IPSModule
     // macht das kenntlich und der Nutzer muss ihn trotzdem prüfen/bestätigen).
     // Ohne Treffer bleibt das Ziel leer und wird über den durchsuchbaren
     // SelectVariable-Dialog je Zeile gewählt.
-    public function AddSourceVariablesToMigrations($sourceVariables, $migrations, int $targetInstanceID = 0): void
+    public function AddSourceVariablesToMigrations($sourceVariables, $migrations, int $targetInstanceID = 0, int $sourceInstanceID = 0): void
     {
         $sourceVariables = $this->NormalizeFormList($sourceVariables);
         $migrations = $this->NormalizeFormList($migrations);
@@ -766,6 +766,11 @@ class MigrationsHub extends IPSModule
         foreach ($this->GetChildVariableRows($targetInstanceID) as $targetRow) {
             $targetByIdent[$targetRow['Ident']] = (int) $targetRow['VariableID'];
         }
+
+        // Bekannte Ident-Übersetzung für dieses Quellmodul (falls hinterlegt) —
+        // greift nur, wenn der direkte Ident-Abgleich nichts findet. Wird
+        // beim ersten Gebrauch dieser Instanz-Kombination einmal aufgebaut.
+        $knownTranslation = $this->GetKnownIdentTranslation($sourceInstanceID);
 
         // array_column() setzt Arrays oder Objekte mit öffentlichen Properties
         // voraus; einzelne Zeilen können hier aber ArrayAccess-Objekte sein —
@@ -784,6 +789,14 @@ class MigrationsHub extends IPSModule
                 continue;
             }
             $suggestedNewID = $targetByIdent[$row['Ident']] ?? 0;
+            $viaKnownTranslation = false;
+            if ($suggestedNewID === 0 && $knownTranslation !== null) {
+                $translatedIdent = $knownTranslation($row['Ident']);
+                if ($translatedIdent !== null && isset($targetByIdent[$translatedIdent])) {
+                    $suggestedNewID = $targetByIdent[$translatedIdent];
+                    $viaKnownTranslation = true;
+                }
+            }
             if (isset($whTwins[$oldID])) {
                 // Wh-Variante mit vorhandenem kWh-Zwilling: kWh bevorzugen, den
                 // Wh-Eintrag markieren (nicht nur warnen). Ziel bewusst leer, um
@@ -791,6 +804,8 @@ class MigrationsHub extends IPSModule
                 // zu verhindern.
                 $status = 'Wh-Zwilling → kWh-Variante »' . $whTwins[$oldID] . '« bevorzugen';
                 $suggestedNewID = 0;
+            } elseif ($viaKnownTranslation) {
+                $status = 'Vorschlag anhand bekannter Fremdmodul-Übersetzung — bitte prüfen';
             } elseif ($suggestedNewID !== 0) {
                 $status = 'Vorschlag anhand Ident — bitte prüfen';
             } elseif ($targetInstanceID !== 0) {
@@ -814,6 +829,60 @@ class MigrationsHub extends IPSModule
             ];
         }
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
+    }
+
+    // Bekannte Ident-Übersetzungen für verbreitete Fremdmodule, deren Idents
+    // nichts mit unseren eigenen Suite-Modulen gemein haben. Kein direkter
+    // Ident-Abgleich möglich (z. B. go-e-Fremdmodul camelCase vs. ChargerHub
+    // snake_case) — verifiziert per Quellcode-Abgleich und Live-Wertevergleich
+    // (siehe CLAUDE.md, ChargerHub-Testfall #48730/#11507, 30 Paare, 03.08.2026).
+    // Liefert eine Übersetzungsfunktion (Ident → Ident|null) oder null, wenn
+    // für die Quellinstanz kein Modul mit hinterlegter Tabelle erkannt wurde.
+    private function GetKnownIdentTranslation(int $sourceInstanceID): ?\Closure
+    {
+        if ($sourceInstanceID === 0 || !IPS_InstanceExists($sourceInstanceID)) {
+            return null;
+        }
+        $moduleID = IPS_GetInstance($sourceInstanceID)['ModuleInfo']['ModuleID'] ?? '';
+
+        // go-e Charger (bis HW Rev. v2), github.com/IPSCoyote/GO-eCharger, → ChargerHub.
+        if ($moduleID === '{B4624A42-F80A-4975-B692-7FB4D06CC805}') {
+            $table = [
+                'status' => 'state',
+                'powerToCarTotal' => 'power',
+                'powerToCarLineL1' => 'power_l1',
+                'powerToCarLineL2' => 'power_l2',
+                'powerToCarLineL3' => 'power_l3',
+                'ampToCarLineL1' => 'current_l1',
+                'ampToCarLineL2' => 'current_l2',
+                'ampToCarLineL3' => 'current_l3',
+                'energyTotal' => 'energy_total',
+                'energyLoadCycle' => 'energy_session',
+                'serialID' => 'dev_serial',
+                'error' => 'dev_error',
+                'adapterAttached' => 'adapter',
+                'unlockedByRFID' => 'unlocked_by',
+                'cableUnlockMode' => 'ctl_cable_lock',
+                'accessControl' => 'ctl_access',
+                'cableCapability' => 'cable_current',
+                'supplyLineL1' => 'voltage_l1',
+                'supplyLineL2' => 'voltage_l2',
+                'supplyLineL3' => 'voltage_l3',
+                'supplyLineN' => 'voltage_n',
+            ];
+            return function (string $ident) use ($table): ?string {
+                if (isset($table[$ident])) {
+                    return $table[$ident];
+                }
+                // energyChargedCard{N} (1-basiert) -> card{N-1}_energy (0-basiert).
+                if (preg_match('/^energyChargedCard(\d+)$/', $ident, $m)) {
+                    return 'card' . ((int) $m[1] - 1) . '_energy';
+                }
+                return null;
+            };
+        }
+
+        return null;
     }
 
     // Erkennt Wh/kWh-Zwillinge unter den gewählten Alt-Datenpunkten: dieselbe
