@@ -29,6 +29,19 @@ nach Bestätigung `PrefillMigration` aufrufen, dann per `OpenObjectButton` (Inst
 Formular dorthin navigieren. Abgestimmt mit InverterHub (29.07.2026), Ausschluss-Parameter mit
 ChargerHub (03.08.2026).
 
+**Plattform-Falle (Verbund-relevant, per 03.08.2026 bestätigt): PHP-Default-Werte optionaler
+Parameter gelten NICHT für den `MIGHUB_*`-RPC-Wrapper.** Als `FindLegacyCandidates()` einen 5.
+Parameter mit PHP-Default `= 0` bekam, brach bei ChargerHub (Aufruf mit den bisherigen 4
+Parametern) live `ArgumentCountError: Too few arguments … 4 passed, exactly 5 expected` — obwohl
+die PHP-Signatur den Parameter klar optional deklariert. IP-Symcons Kernel generiert die
+öffentliche Präfix-Funktion offenbar mit fester Arität (exakt so viele Parameter wie deklariert,
+Default-Werte werden dabei nicht übernommen) — das gilt vermutlich für **jedes** Modul im Verbund,
+nicht nur für uns. Konsequenz: einer öffentlichen `*_`-Präfix-Funktion nachträglich einen weiteren
+Parameter zu geben ist **immer ein Breaking Change** für externe Aufrufer, ganz gleich ob mit
+PHP-Default versehen oder nicht — braucht denselben Koordinationsaufwand wie eine
+`contractVersion`-Major-Änderung: alle bekannten Aufrufer vorher informieren und synchron
+umstellen (wie hier mit ChargerHub geschehen), sonst bricht es live und unangekündigt.
+
 ## Sprachregel (Verbund-Vertrag, gilt für alle Module)
 
 Alles, was der Nutzer zu sehen bekommt, ist **deutsch**: Formularbeschriftungen, Hinweis- und
