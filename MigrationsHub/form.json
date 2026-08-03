@@ -374,6 +374,12 @@
           "values": []
         },
         {
+          "type": "Button",
+          "caption": "Prüflisten leeren (Skript-/Ereignis-Funde)",
+          "confirm": "Beide Prüflisten wirklich leeren? Das betrifft auch noch nicht abgehakte Funde.",
+          "onClick": "MIGHUB_ClearReferenceChecks($id);"
+        },
+        {
           "type": "Label",
           "caption": "Nur Verknüpfen (ohne Übernahme-Versuch)"
         },

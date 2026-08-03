@@ -311,6 +311,20 @@ class MigrationsHub extends IPSModule
         $this->UpdateFormField('MigrationLog', 'values', json_encode([]));
     }
 
+    // Leert die Skript-/Ereignis-Prüflisten (samt der Statuszeile oben, die
+    // deren offene Punkte zählt). Beide Listen sind dauerhaft gespeichert und
+    // bleiben unabhängig von der aktuellen Alt-/Neu-Instanz-Auswahl bestehen
+    // — beim Start einer neuen Migration sonst leicht mit einem frischen Fund
+    // zu verwechseln, obwohl es nur ein Überbleibsel eines früheren Laufs ist.
+    public function ClearReferenceChecks(): void
+    {
+        $this->WriteAttributeString('ScriptChecks', '[]');
+        $this->WriteAttributeString('EventChecks', '[]');
+        $this->UpdateFormField('ScriptChecks', 'values', json_encode([]));
+        $this->UpdateFormField('EventChecks', 'values', json_encode([]));
+        $this->UpdateFormField('StatusLabel', 'caption', $this->BuildStatusLine([], []));
+    }
+
     // Einklappbares Panel mit einem OpenObjectButton je (noch existierendem)
     // Fundobjekt — dedupliziert, weil dasselbe Skript für mehrere Alt-
     // Variablen gefunden werden kann, geöffnet werden muss es nur einmal.
