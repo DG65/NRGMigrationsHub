@@ -40,15 +40,15 @@
         },
         {
           "type": "Label",
-          "caption": "2. Schritt 2: \"Alt-Datenpunkte laden\", gewünschte Datenpunkte ankreuzen, in die Migrationsliste übernehmen."
+          "caption": "2. \"⚡ Alt-Instanz vorbereiten\" klicken — lädt die Datenpunkte, wählt automatisch die archivierten/verknüpften aus, ordnet sie dem Zielmodul zu und simuliert die Übernahme. Für Sonderfälle (z. B. auch unarchivierte Datenpunkte) das Panel \"Manuell / Feinabstimmung\" nutzen."
         },
         {
           "type": "Label",
-          "caption": "3. Schritt 3: Zielvorschläge prüfen, fehlende Ziele per Suchfeld ergänzen. \"Referenzen suchen\" nutzen und die Fundliste (Skripte/Ereignisse) abarbeiten."
+          "caption": "3. Ergebnis der Zielvorschläge prüfen, fehlende Ziele per Klick auf die Zeile ergänzen."
         },
         {
           "type": "Label",
-          "caption": "4. Bestätigungsschalter setzen, zuerst simulieren (Probelauf), Ergebnis prüfen, dann \"Übernahme (Adoption) jetzt ausführen\" — das ist der empfohlene, verlustfreie Weg."
+          "caption": "4. Bestätigungsschalter setzen, dann \"Jetzt ausführen\" — das ist der einzige unwiderrufliche Schritt. Vorher optional nochmal \"Simulieren (Probelauf)\", falls sich die Zuordnung geändert hat."
         },
         {
           "type": "Label",
@@ -109,97 +109,19 @@
     },
     {
       "type": "Button",
-      "caption": "Alt-Datenpunkte laden",
-      "onClick": "MIGHUB_LoadSourceVariables($id, $SourceInstanceID);"
-    },
-    {
-      "type": "Button",
-      "caption": "⚡ Alles vorbereiten (Standardfall: nur archivierte/verknüpfte Datenpunkte)",
+      "caption": "⚡ Alt-Instanz vorbereiten (lädt, wählt archivierte/verknüpfte Datenpunkte, ordnet zu, simuliert)",
       "onClick": "MIGHUB_PrepareAllAdoptions($id, $SourceInstanceID, $TargetInstanceID);"
     },
     {
       "type": "Label",
-      "caption": "Erledigt Schritt 2+3 in einem Klick: lädt die Alt-Datenpunkte, kreuzt nur archivierte/verknüpfte an, ordnet sie per Ident zu, sucht Skript-/Ereignis-Referenzen und simuliert die Übernahme — Ergebnis unten prüfen, dann direkt zu \"Jetzt ausführen\". Baut dabei die Migrationsliste komplett neu auf; für Sonderfälle (z. B. auch unarchivierte Datenpunkte) weiter die einzelnen Schritte unten nutzen."
-    },
-    {
-      "type": "Label",
-      "caption": "Schritt 2: gewünschte Alt-Datenpunkte ankreuzen und übernehmen"
-    },
-    {
-      "type": "List",
-      "name": "SourceVariables",
-      "caption": "Alt-Datenpunkte",
-      "rowCount": 10,
-      "add": false,
-      "delete": false,
-      "sort": {
-        "column": "Ident",
-        "direction": "ascending"
-      },
-      "columns": [
-        {
-          "caption": "Auswahl",
-          "name": "Selected",
-          "width": "80px",
-          "edit": {
-            "type": "CheckBox"
-          }
-        },
-        {
-          "caption": "Ident",
-          "name": "Ident",
-          "width": "200px"
-        },
-        {
-          "caption": "Name",
-          "name": "Name",
-          "width": "auto"
-        },
-        {
-          "caption": "Referenzen",
-          "name": "References",
-          "width": "160px"
-        },
-        {
-          "caption": "VariableID",
-          "name": "VariableID",
-          "width": "100px",
-          "visible": false
-        }
-      ],
-      "values": []
-    },
-    {
-      "type": "RowLayout",
-      "items": [
-        {
-          "type": "Button",
-          "caption": "Alle auswählen",
-          "onClick": "MIGHUB_SetAllSourceVariablesSelected($id, $SourceVariables, true);"
-        },
-        {
-          "type": "Button",
-          "caption": "Alle abwählen",
-          "onClick": "MIGHUB_SetAllSourceVariablesSelected($id, $SourceVariables, false);"
-        },
-        {
-          "type": "Button",
-          "caption": "Nur archivierte/verknüpfte auswählen",
-          "onClick": "MIGHUB_SelectOnlyReferencedSourceVariables($id, $SourceVariables);"
-        }
-      ]
-    },
-    {
-      "type": "Button",
-      "caption": "Ausgewählte Alt-Datenpunkte → in Migrationsliste übernehmen",
-      "onClick": "MIGHUB_AddSourceVariablesToMigrations($id, $SourceVariables, $Migrations, $TargetInstanceID, $SourceInstanceID);"
+      "caption": "Das genügt für den Normalfall — Ergebnis weiter unten prüfen, dann direkt zu \"Jetzt ausführen\". Für Sonderfälle (z. B. auch unarchivierte Datenpunkte migrieren, einzelne Zuordnungen von Hand nachbessern) das Panel \"Manuell / Feinabstimmung\" weiter unten öffnen."
     },
     {
       "type": "RowLayout",
       "items": [
         {
           "type": "Label",
-          "caption": "Schritt 3: Zielvorschläge (anhand gleichem Ident) prüfen, fehlende Ziele über das Suchfeld wählen (Klick auf die Zeile → Variablenauswahl)"
+          "caption": "Zuordnung prüfen: fehlende Ziele über das Suchfeld wählen (Klick auf die Zeile → Variablenauswahl)"
         },
         {
           "type": "PopupButton",
@@ -262,109 +184,226 @@
       "values": []
     },
     {
+      "type": "ExpansionPanel",
+      "caption": "🔧 Manuell / Feinabstimmung (für Sonderfälle — im Normalfall nicht nötig)",
+      "expanded": false,
+      "items": [
+        {
+          "type": "Label",
+          "caption": "Hier einzelne Schritte von Hand steuern: z. B. auch unarchivierte Datenpunkte migrieren, Zuordnungen aus der Migrationsliste oben manuell nachbessern, oder gezielt nur Verknüpfen statt Übernahme erzwingen."
+        },
+        {
+          "type": "Label",
+          "caption": "Alt-Datenpunkte auswählen und übernehmen"
+        },
+        {
+          "type": "Button",
+          "caption": "Alt-Datenpunkte laden",
+          "onClick": "MIGHUB_LoadSourceVariables($id, $SourceInstanceID);"
+        },
+        {
+          "type": "List",
+          "name": "SourceVariables",
+          "caption": "Alt-Datenpunkte",
+          "rowCount": 10,
+          "add": false,
+          "delete": false,
+          "sort": {
+            "column": "Ident",
+            "direction": "ascending"
+          },
+          "columns": [
+            {
+              "caption": "Auswahl",
+              "name": "Selected",
+              "width": "80px",
+              "edit": {
+                "type": "CheckBox"
+              }
+            },
+            {
+              "caption": "Ident",
+              "name": "Ident",
+              "width": "200px"
+            },
+            {
+              "caption": "Name",
+              "name": "Name",
+              "width": "auto"
+            },
+            {
+              "caption": "Referenzen",
+              "name": "References",
+              "width": "160px"
+            },
+            {
+              "caption": "VariableID",
+              "name": "VariableID",
+              "width": "100px",
+              "visible": false
+            }
+          ],
+          "values": []
+        },
+        {
+          "type": "RowLayout",
+          "items": [
+            {
+              "type": "Button",
+              "caption": "Alle auswählen",
+              "onClick": "MIGHUB_SetAllSourceVariablesSelected($id, $SourceVariables, true);"
+            },
+            {
+              "type": "Button",
+              "caption": "Alle abwählen",
+              "onClick": "MIGHUB_SetAllSourceVariablesSelected($id, $SourceVariables, false);"
+            },
+            {
+              "type": "Button",
+              "caption": "Nur archivierte/verknüpfte auswählen",
+              "onClick": "MIGHUB_SelectOnlyReferencedSourceVariables($id, $SourceVariables);"
+            }
+          ]
+        },
+        {
+          "type": "Button",
+          "caption": "Ausgewählte Alt-Datenpunkte → in Migrationsliste übernehmen",
+          "onClick": "MIGHUB_AddSourceVariablesToMigrations($id, $SourceVariables, $Migrations, $TargetInstanceID, $SourceInstanceID);"
+        },
+        {
+          "type": "Label",
+          "caption": "Referenz-Suche (Skripte/Ereignisse)"
+        },
+        {
+          "type": "Label",
+          "caption": "Wichtig: Archiv und WebFront-Verknüpfungen werden automatisch migriert. Skripte, Ereignisse, IPSView-Kacheln, Workflows (IPSWorkflowEditor) und Einstellungen anderer Module (die eine Variablen-ID fest referenzieren) NICHT — dafür dient die folgende Suche als Prüfliste zur manuellen Kontrolle."
+        },
+        {
+          "type": "Button",
+          "caption": "Referenzen suchen (Skripte/Ereignisse)",
+          "onClick": "MIGHUB_ScanReferences($id, $Migrations);"
+        },
+        {
+          "type": "Label",
+          "caption": "Skript-Funde — zum Bearbeiten die Schaltflächen unter der Liste nutzen (öffnen das Skript direkt; nach erneuter Suche das Formular einmal neu öffnen)"
+        },
+        {
+          "type": "List",
+          "name": "ScriptChecks",
+          "caption": "Skripte mit möglichem Bezug zur Alt-Variable",
+          "rowCount": 8,
+          "add": false,
+          "delete": true,
+          "onEdit": "MIGHUB_SaveScriptChecks($id, $ScriptChecks);",
+          "columns": [
+            {
+              "caption": "Alte Variable",
+              "name": "OldName",
+              "width": "200px",
+              "add": ""
+            },
+            {
+              "caption": "Skript",
+              "name": "ObjectID",
+              "width": "auto",
+              "edit": {
+                "type": "SelectScript"
+              }
+            },
+            {
+              "caption": "Erledigt",
+              "name": "Done",
+              "width": "100px",
+              "edit": {
+                "type": "CheckBox"
+              }
+            },
+            {
+              "caption": "OldVariableID",
+              "name": "OldVariableID",
+              "width": "80px",
+              "visible": false,
+              "add": 0
+            }
+          ],
+          "values": []
+        },
+        {
+          "type": "Label",
+          "caption": "Ereignis-Funde — zum Bearbeiten die Schaltflächen unter der Liste nutzen (öffnen das Ereignis direkt; nach erneuter Suche das Formular einmal neu öffnen)"
+        },
+        {
+          "type": "List",
+          "name": "EventChecks",
+          "caption": "Ereignisse, die durch die Alt-Variable ausgelöst werden",
+          "rowCount": 8,
+          "add": false,
+          "delete": true,
+          "onEdit": "MIGHUB_SaveEventChecks($id, $EventChecks);",
+          "columns": [
+            {
+              "caption": "Alte Variable",
+              "name": "OldName",
+              "width": "200px",
+              "add": ""
+            },
+            {
+              "caption": "Ereignis",
+              "name": "ObjectID",
+              "width": "auto",
+              "edit": {
+                "type": "SelectEvent"
+              }
+            },
+            {
+              "caption": "Erledigt",
+              "name": "Done",
+              "width": "100px",
+              "edit": {
+                "type": "CheckBox"
+              }
+            },
+            {
+              "caption": "OldVariableID",
+              "name": "OldVariableID",
+              "width": "80px",
+              "visible": false,
+              "add": 0
+            }
+          ],
+          "values": []
+        },
+        {
+          "type": "Label",
+          "caption": "Nur Verknüpfen (ohne Übernahme-Versuch)"
+        },
+        {
+          "type": "Label",
+          "caption": "Für den Normalfall nicht nötig — \"Jetzt ausführen\" unten fällt bei Typ-Mismatch bereits automatisch hierauf zurück. Erzwingt Verknüpfen (AC_ChangeVariableID) für ALLE Zeilen, auch wo Übernahme möglich wäre — z. B. um bewusst die Kennung NICHT zu ändern, oder zum gezielten Testen. Überträgt Archivhistorie und hängt Verknüpfungen auf die neuen Variablen um — unwiderruflich."
+        },
+        {
+          "type": "RowLayout",
+          "items": [
+            {
+              "type": "Button",
+              "caption": "Verknüpfen simulieren (Probelauf)",
+              "onClick": "MIGHUB_SimulateMigrations($id, $Migrations);"
+            },
+            {
+              "type": "Button",
+              "caption": "Verknüpfen jetzt ausführen",
+              "confirm": "Dieser Vorgang überträgt Archivhistorie und Verknüpfungen unwiderruflich auf die neuen Variablen. Wirklich fortfahren?",
+              "onClick": "MIGHUB_RunMigrations($id, $Confirmed, $Migrations);"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "type": "Button",
       "caption": "Migrationsliste leeren",
       "confirm": "Alle Zeilen aus der Migrationsliste entfernen?",
       "onClick": "MIGHUB_ClearMigrations($id);"
-    },
-    {
-      "type": "Label",
-      "caption": "Wichtig: Archiv und WebFront-Verknüpfungen werden automatisch migriert. Skripte, Ereignisse, IPSView-Kacheln, Workflows (IPSWorkflowEditor) und Einstellungen anderer Module (die eine Variablen-ID fest referenzieren) NICHT — dafür dient die folgende Suche als Prüfliste zur manuellen Kontrolle."
-    },
-    {
-      "type": "Button",
-      "caption": "Referenzen suchen (Skripte/Ereignisse)",
-      "onClick": "MIGHUB_ScanReferences($id, $Migrations);"
-    },
-    {
-      "type": "Label",
-      "caption": "Skript-Funde — zum Bearbeiten die Schaltflächen unter der Liste nutzen (öffnen das Skript direkt; nach erneuter Suche das Formular einmal neu öffnen)"
-    },
-    {
-      "type": "List",
-      "name": "ScriptChecks",
-      "caption": "Skripte mit möglichem Bezug zur Alt-Variable",
-      "rowCount": 8,
-      "add": false,
-      "delete": true,
-      "onEdit": "MIGHUB_SaveScriptChecks($id, $ScriptChecks);",
-      "columns": [
-        {
-          "caption": "Alte Variable",
-          "name": "OldName",
-          "width": "200px",
-          "add": ""
-        },
-        {
-          "caption": "Skript",
-          "name": "ObjectID",
-          "width": "auto",
-          "edit": {
-            "type": "SelectScript"
-          }
-        },
-        {
-          "caption": "Erledigt",
-          "name": "Done",
-          "width": "100px",
-          "edit": {
-            "type": "CheckBox"
-          }
-        },
-        {
-          "caption": "OldVariableID",
-          "name": "OldVariableID",
-          "width": "80px",
-          "visible": false,
-          "add": 0
-        }
-      ],
-      "values": []
-    },
-    {
-      "type": "Label",
-      "caption": "Ereignis-Funde — zum Bearbeiten die Schaltflächen unter der Liste nutzen (öffnen das Ereignis direkt; nach erneuter Suche das Formular einmal neu öffnen)"
-    },
-    {
-      "type": "List",
-      "name": "EventChecks",
-      "caption": "Ereignisse, die durch die Alt-Variable ausgelöst werden",
-      "rowCount": 8,
-      "add": false,
-      "delete": true,
-      "onEdit": "MIGHUB_SaveEventChecks($id, $EventChecks);",
-      "columns": [
-        {
-          "caption": "Alte Variable",
-          "name": "OldName",
-          "width": "200px",
-          "add": ""
-        },
-        {
-          "caption": "Ereignis",
-          "name": "ObjectID",
-          "width": "auto",
-          "edit": {
-            "type": "SelectEvent"
-          }
-        },
-        {
-          "caption": "Erledigt",
-          "name": "Done",
-          "width": "100px",
-          "edit": {
-            "type": "CheckBox"
-          }
-        },
-        {
-          "caption": "OldVariableID",
-          "name": "OldVariableID",
-          "width": "80px",
-          "visible": false,
-          "add": 0
-        }
-      ],
-      "values": []
     },
     {
       "type": "Label",
@@ -397,33 +436,6 @@
           "caption": "Jetzt ausführen",
           "confirm": "Die alten Variablen werden unter die neuen Instanzen gehängt — ihre Kennung (und damit Archivhistorie und alle Verknüpfungen) bleibt dabei erhalten. Vor jedem Datenpunkt wird zuerst unauffällig geprüft, ob das sicher möglich ist; wo nicht, wird automatisch die Archivhistorie klassisch auf die neue Variable umgehängt. Wirklich fortfahren?",
           "onClick": "MIGHUB_RunAdoptions($id, $Confirmed, $RiskAcknowledged, $Migrations);"
-        }
-      ]
-    },
-    {
-      "type": "ExpansionPanel",
-      "caption": "Erweitert: nur Verknüpfen (ohne Übernahme-Versuch)",
-      "expanded": false,
-      "items": [
-        {
-          "type": "Label",
-          "caption": "Für den Normalfall nicht nötig — \"Jetzt ausführen\" oben fällt bei Typ-Mismatch bereits automatisch hierauf zurück. Dieser Bereich erzwingt Verknüpfen (AC_ChangeVariableID) für ALLE Zeilen, auch wo Übernahme möglich wäre — z. B. um bewusst die Kennung NICHT zu ändern, oder zum gezielten Testen. Überträgt Archivhistorie und hängt Verknüpfungen auf die neuen Variablen um — unwiderruflich."
-        },
-        {
-          "type": "RowLayout",
-          "items": [
-            {
-              "type": "Button",
-              "caption": "Verknüpfen simulieren (Probelauf)",
-              "onClick": "MIGHUB_SimulateMigrations($id, $Migrations);"
-            },
-            {
-              "type": "Button",
-              "caption": "Verknüpfen jetzt ausführen",
-              "confirm": "Dieser Vorgang überträgt Archivhistorie und Verknüpfungen unwiderruflich auf die neuen Variablen. Wirklich fortfahren?",
-              "onClick": "MIGHUB_RunMigrations($id, $Confirmed, $Migrations);"
-            }
-          ]
         }
       ]
     },

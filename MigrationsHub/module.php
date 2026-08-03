@@ -204,9 +204,40 @@ class MigrationsHub extends IPSModule
             ? $this->GetChildVariableRows($sourceInstanceID, $this->BuildLinkCountMap())
             : [];
 
-        $elements = [];
-        foreach ($form['elements'] as $element) {
-            $elements[] = $element;
+        $form['elements'] = $this->InjectDynamicFormValues(
+            $form['elements'],
+            $scriptChecks,
+            $eventChecks,
+            $migrationLog,
+            $sourceVariables
+        );
+        return json_encode($form);
+    }
+
+    // Läuft rekursiv durch die Formularelemente (auch verschachtelt in
+    // ExpansionPanel/RowLayout-"items") und befüllt die dynamischen Felder.
+    // Rekursiv statt nur oberste Ebene, weil ScriptChecks/EventChecks/
+    // SourceVariables im Panel "Manuell / Feinabstimmung" verschachtelt sind.
+    private function InjectDynamicFormValues(
+        array $elements,
+        array $scriptChecks,
+        array $eventChecks,
+        array $migrationLog,
+        array $sourceVariables
+    ): array {
+        $result = [];
+        foreach ($elements as $element) {
+            if (isset($element['items']) && is_array($element['items'])) {
+                $element['items'] = $this->InjectDynamicFormValues(
+                    $element['items'],
+                    $scriptChecks,
+                    $eventChecks,
+                    $migrationLog,
+                    $sourceVariables
+                );
+            }
+            $result[] = $element;
+
             // Direkt-Öffnen-Buttons unter die jeweilige Checkliste einfügen:
             // Listen-Spalten können keine Links darstellen, aber das Element
             // OpenObjectButton öffnet ein Objekt (Skript/Event) direkt zur
@@ -214,27 +245,26 @@ class MigrationsHub extends IPSModule
             // Formulars — nach einem neuen Scan das Formular einmal neu öffnen,
             // damit sie zu den aktuellen Funden passen.
             if (($element['name'] ?? '') === 'ScriptChecks') {
-                $elements[count($elements) - 1]['values'] = $scriptChecks;
+                $result[count($result) - 1]['values'] = $scriptChecks;
                 $panel = $this->BuildOpenButtonsPanel($scriptChecks, 'Skripte direkt öffnen');
                 if ($panel !== null) {
-                    $elements[] = $panel;
+                    $result[] = $panel;
                 }
             } elseif (($element['name'] ?? '') === 'EventChecks') {
-                $elements[count($elements) - 1]['values'] = $eventChecks;
+                $result[count($result) - 1]['values'] = $eventChecks;
                 $panel = $this->BuildOpenButtonsPanel($eventChecks, 'Ereignisse direkt öffnen');
                 if ($panel !== null) {
-                    $elements[] = $panel;
+                    $result[] = $panel;
                 }
             } elseif (($element['name'] ?? '') === 'StatusLabel') {
-                $elements[count($elements) - 1]['caption'] = $this->BuildStatusLine($scriptChecks, $eventChecks);
+                $result[count($result) - 1]['caption'] = $this->BuildStatusLine($scriptChecks, $eventChecks);
             } elseif (($element['name'] ?? '') === 'MigrationLog') {
-                $elements[count($elements) - 1]['values'] = array_reverse($migrationLog); // neueste zuerst
+                $result[count($result) - 1]['values'] = array_reverse($migrationLog); // neueste zuerst
             } elseif (($element['name'] ?? '') === 'SourceVariables') {
-                $elements[count($elements) - 1]['values'] = $sourceVariables;
+                $result[count($result) - 1]['values'] = $sourceVariables;
             }
         }
-        $form['elements'] = $elements;
-        return json_encode($form);
+        return $result;
     }
 
     // Eine Zeile Status auf einen Blick — ohne dass der Nutzer in die

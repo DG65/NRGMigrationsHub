@@ -71,20 +71,20 @@ bewusst nicht automatisch tut.
 **1. MigrationsHub-Instanz anlegen** und im Formular Schritt 1 die Alt-Instanz (deine bisherige
 Lösung) und die eben vorbereitete Neu-Instanz auswählen.
 
-**2. Datenpunkte wählen.** „Alt-Datenpunkte laden" → gewünschte Zeilen ankreuzen (oder „Alle
-auswählen") → „in Migrationsliste übernehmen". Für Idents, die in beiden Instanzen identisch
-heißen, wird das Ziel automatisch vorgeschlagen.
+**2. „⚡ Alt-Instanz vorbereiten" klicken.** Erledigt in einem Schritt: Datenpunkte laden,
+automatisch nur die archivierten/verknüpften auswählen (der Rest legt das neue Modul ohnehin
+frisch an, braucht also keine Migration), per Ident dem Zielmodul zuordnen, Skript-/Ereignis-
+Referenzen suchen und die Übernahme simulieren (schreibt nichts). Für Sonderfälle — z. B. auch
+unarchivierte Datenpunkte migrieren, oder Zuordnungen von Hand nachbessern — das Panel „🔧
+Manuell / Feinabstimmung" öffnen; dort stehen die Einzelschritte weiterhin zur Verfügung.
 
-**3. Zuordnung prüfen.** Fehlende Ziele über das Suchfeld in der Migrationsliste ergänzen. Die
-Spalte „Referenzen" zeigt, ob ein Datenpunkt archiviert wird oder Verknüpfungen hat — je mehr,
-desto wichtiger eine sorgfältige Zuordnung. Mit „Referenzen suchen" zusätzlich prüfen, ob
-Skripte oder Ereignisse die alte Variablen-ID fest referenzieren, und die Fundliste abarbeiten.
+**3. Zuordnung prüfen.** Ergebnis der Zielvorschläge in der Migrationsliste durchsehen, fehlende
+Ziele über das Suchfeld ergänzen. Die Spalte „Referenzen" zeigt, ob ein Datenpunkt archiviert
+wird oder Verknüpfungen hat — je mehr, desto wichtiger eine sorgfältige Zuordnung.
 
-**4. Simulieren, dann ausführen.** Bestätigungsschalter setzen, zuerst „Übernahme simulieren
-(Probelauf)" — der schreibt nichts, zeigt aber, was passieren würde. Ergebnis durchsehen, dann
-„Übernahme (Adoption) jetzt ausführen". Wo die Übernahme technisch nicht möglich ist (z. B.
-unterschiedlicher Datentyp), fällt MigrationsHub automatisch auf den zweiten Weg (Verknüpfen)
-zurück — das steht dann so im Ergebnis.
+**4. Ausführen.** Bestätigungsschalter setzen, dann „Jetzt ausführen" — der einzige unwiderrufliche
+Schritt. Wo die Übernahme technisch nicht möglich ist (z. B. unterschiedlicher Datentyp), fällt
+MigrationsHub automatisch auf den zweiten Weg (Verknüpfen) zurück — das steht dann so im Ergebnis.
 
 **5. Nachbereiten.** An der neuen Instanz „Kommunikation aktiv" einschalten. Verbliebene
 Skript-/Ereignis-Funde aus der Prüfliste abarbeiten. Ist eine Alt-Instanz nach der Übernahme
