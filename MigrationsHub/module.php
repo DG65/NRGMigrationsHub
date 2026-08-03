@@ -1011,6 +1011,41 @@ class MigrationsHub extends IPSModule
         $this->SimulateAdoptions($migrations);
     }
 
+    // Alternative zum Formular: kompletter Übernahme-Ablauf in einem einzigen
+    // Aufruf für ein eigenes Konsolen-Skript, ohne offene Formular-Session.
+    // UpdateFormField() (in AddSourceVariablesToMigrations()/SimulateAdoptions()/
+    // RunAdoptions()) wirkt ohne offenes Formular nicht, liefert aber auch
+    // keinen Fehler — die eigentlichen Ergebnisse kommen hier stattdessen als
+    // Rückgabewert, den ein Skript direkt ausgeben kann. $execute=false ist
+    // der Probelauf (nichts wird geschrieben); erst bei $execute=true wird
+    // wirklich übernommen (inkl. Migrations-Log-Eintrag).
+    public function RunFullAdoption(int $sourceInstanceID, int $targetInstanceID, bool $execute): array
+    {
+        $linkCounts = $this->BuildLinkCountMap();
+        $sourceVariables = $this->GetChildVariableRows($sourceInstanceID, $linkCounts);
+        foreach ($sourceVariables as &$row) {
+            $variableID = (int) $row['VariableID'];
+            $hasArchive = $this->FindArchiveInstance($variableID) !== 0;
+            $hasLinks = ($linkCounts[$variableID] ?? 0) > 0;
+            $row['Selected'] = $hasArchive || $hasLinks;
+        }
+        unset($row);
+
+        $migrations = $this->AddSourceVariablesToMigrations($sourceVariables, [], $targetInstanceID, $sourceInstanceID);
+        [$migrations, $results] = $this->ProcessAdoptions($migrations, !$execute);
+
+        if ($execute) {
+            $this->AppendToMigrationLog(array_map(fn ($r) => $r + ['Mode' => 'Übernahme'], $results));
+        }
+
+        return [
+            'sourceCount' => count($sourceVariables),
+            'selectedCount' => count(array_filter($sourceVariables, fn ($r) => !empty($r['Selected']))),
+            'migrations' => $migrations,
+            'results' => $results,
+        ];
+    }
+
     // --- Referenz-Scan: Skripte/Events, die die Alt-Variable evtl. fest per
     // ID referenzieren. AC_ChangeVariableID und die Link-Umhängung erfassen
     // nur Archiv und WebFront-Links — Skriptcode, Event-Trigger, IPSView-
