@@ -463,9 +463,22 @@ class MigrationsHub extends IPSModule
 
         $targetAggregation = $this->ReadAggregationType($newVariableID); // -1 = unbekannt
 
+        // Typ nach dem Anlegen nicht mehr änderbar — reines Umhängen (Objekt-ID
+        // erhalten) geht dann technisch nicht. Rückfall auf AC_ChangeVariableID
+        // wird hier TATSÄCHLICH ausgeführt, nicht nur gemeldet — ein Nutzer soll
+        // für einen einzelnen Typ-Mismatch nicht manuell zum zweiten Weg
+        // wechseln müssen, das "Übernahme ausführen" soll in jedem Fall das
+        // technisch bestmögliche Ergebnis liefern.
         $oldType = IPS_GetVariable($oldVariableID)['VariableType'];
         if ($oldType !== $targetType) {
-            return $fail('Typ passt nicht (' . $this->TypeName($oldType) . ' vs. ' . $this->TypeName($targetType) . ') — Rückfall AC_ChangeVariableID', true);
+            $reason = 'Typ passt nicht (' . $this->TypeName($oldType) . ' vs. ' . $this->TypeName($targetType) . ')';
+            if ($dryRun) {
+                return ['success' => true, 'mode' => 'Rückfall', 'reason' => $reason . ' — würde auf AC_ChangeVariableID zurückfallen', 'fallback' => true, 'dryRun' => true];
+            }
+            $classic = $this->MigrateVariable($oldVariableID, $newVariableID, false);
+            $classic['mode'] = 'Rückfall';
+            $classic['reason'] = $reason . ($classic['success'] ? ' — per AC_ChangeVariableID verknüpft' : ' — Rückfall ebenfalls fehlgeschlagen: ' . $classic['reason']);
+            return $classic;
         }
 
         if ($dryRun) {
