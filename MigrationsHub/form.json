@@ -354,11 +354,11 @@
     },
     {
       "type": "Label",
-      "caption": "Zwei Migrationswege: ÜBERNAHME (Adoption) ist verlustfrei und bevorzugt — die alte Variable wird selbst übernommen, Historie und alle Referenzen bleiben ohne Umbau erhalten. Funktioniert mit jedem Zielmodul (die Preflight-Sonde prüft jeden Datenpunkt vorab); für fremde (Nicht-NRG-Stack-)Module gilt der Risiko-Hinweis unten. VERKNÜPFEN (AC_ChangeVariableID) hängt die Historie auf die neue Variable um; Rückfall, wo Übernahme nicht geht (Typ passt nicht)."
+      "caption": "ÜBERNAHME (Adoption): die alte Variable wird selbst übernommen — Kennung, Archivhistorie und alle Verknüpfungen bleiben ohne Umbau erhalten. Das ist der einzige Klick, der nötig ist: passt der Datentyp bei einem Datenpunkt ausnahmsweise nicht zum Zielmodul, wird für DIESEN automatisch und ohne weiteres Zutun auf den klassischen Weg (Historie umhängen statt Kennung übernehmen) zurückgefallen — sichtbar im Ergebnis unten."
     },
     {
       "type": "Label",
-      "caption": "⚠️ Risiko bei ÜBERNAHME: Erkennt das Zielmodul einen Datenpunkt beim Speichern nicht (falscher Ident/Typ/inaktive Gruppe), kann es ihn ERSATZLOS LÖSCHEN, samt Archivhistorie. Die Preflight-Sonde testet das vorab an einer Wegwerf-Variable — bei eigenen NRG-Stack-Modulen ist dieses Verhalten getestet, bei fremden Modulen nicht garantiert."
+      "caption": "⚠️ Risiko: Erkennt das Zielmodul einen Datenpunkt beim Speichern nicht (falscher Ident/Typ/inaktive Gruppe), kann es ihn ERSATZLOS LÖSCHEN, samt Archivhistorie. Eine unauffällige Testvariable prüft das vorab — bei eigenen NRG-Stack-Modulen ist dieses Verhalten getestet, bei fremden Modulen nicht garantiert."
     },
     {
       "type": "CheckBox",
@@ -368,41 +368,48 @@
     {
       "type": "CheckBox",
       "name": "RiskAcknowledged",
-      "caption": "Einverständnis: Ich habe das Risiko bei ÜBERNAHME (mögliches Löschen samt Historie bei falscher Zuordnung) gelesen und bin einverstanden"
+      "caption": "Einverständnis: Ich habe das Risiko (mögliches Löschen samt Historie bei falscher Zuordnung) gelesen und bin einverstanden"
     },
     {
       "type": "RowLayout",
       "items": [
         {
           "type": "Button",
-          "caption": "Übernahme simulieren (Probelauf)",
+          "caption": "Simulieren (Probelauf)",
           "onClick": "MIGHUB_SimulateAdoptions($id, $Migrations);"
         },
         {
           "type": "Button",
-          "caption": "Übernahme (Adoption) jetzt ausführen",
-          "confirm": "Übernahme-Modus: Die alten Variablen werden unter die neuen Instanzen gehängt — ihre Kennung (und damit Archivhistorie und alle Verknüpfungen) bleibt dabei erhalten. Vor jedem Datenpunkt wird zuerst unauffällig geprüft, ob das sicher möglich ist; wo nicht, wird stattdessen die Archivhistorie klassisch auf die neue Variable umgehängt. Wirklich fortfahren?",
+          "caption": "Jetzt ausführen",
+          "confirm": "Die alten Variablen werden unter die neuen Instanzen gehängt — ihre Kennung (und damit Archivhistorie und alle Verknüpfungen) bleibt dabei erhalten. Vor jedem Datenpunkt wird zuerst unauffällig geprüft, ob das sicher möglich ist; wo nicht, wird automatisch die Archivhistorie klassisch auf die neue Variable umgehängt. Wirklich fortfahren?",
           "onClick": "MIGHUB_RunAdoptions($id, $Confirmed, $RiskAcknowledged, $Migrations);"
         }
       ]
     },
     {
-      "type": "Label",
-      "caption": "Alternativer Weg (Verknüpfen): überträgt Archivhistorie per AC_ChangeVariableID und hängt Verknüpfungen auf die neuen Variablen um — unwiderruflich. Nur nutzen, wenn Übernahme nicht in Frage kommt."
-    },
-    {
-      "type": "RowLayout",
+      "type": "ExpansionPanel",
+      "caption": "Erweitert: nur Verknüpfen (ohne Übernahme-Versuch)",
+      "expanded": false,
       "items": [
         {
-          "type": "Button",
-          "caption": "Verknüpfen simulieren (Probelauf)",
-          "onClick": "MIGHUB_SimulateMigrations($id, $Migrations);"
+          "type": "Label",
+          "caption": "Für den Normalfall nicht nötig — \"Jetzt ausführen\" oben fällt bei Typ-Mismatch bereits automatisch hierauf zurück. Dieser Bereich erzwingt Verknüpfen (AC_ChangeVariableID) für ALLE Zeilen, auch wo Übernahme möglich wäre — z. B. um bewusst die Kennung NICHT zu ändern, oder zum gezielten Testen. Überträgt Archivhistorie und hängt Verknüpfungen auf die neuen Variablen um — unwiderruflich."
         },
         {
-          "type": "Button",
-          "caption": "Verknüpfen jetzt ausführen",
-          "confirm": "Dieser Vorgang überträgt Archivhistorie und Verknüpfungen unwiderruflich auf die neuen Variablen. Wirklich fortfahren?",
-          "onClick": "MIGHUB_RunMigrations($id, $Confirmed, $Migrations);"
+          "type": "RowLayout",
+          "items": [
+            {
+              "type": "Button",
+              "caption": "Verknüpfen simulieren (Probelauf)",
+              "onClick": "MIGHUB_SimulateMigrations($id, $Migrations);"
+            },
+            {
+              "type": "Button",
+              "caption": "Verknüpfen jetzt ausführen",
+              "confirm": "Dieser Vorgang überträgt Archivhistorie und Verknüpfungen unwiderruflich auf die neuen Variablen. Wirklich fortfahren?",
+              "onClick": "MIGHUB_RunMigrations($id, $Confirmed, $Migrations);"
+            }
+          ]
         }
       ]
     },
