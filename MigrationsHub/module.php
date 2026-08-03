@@ -756,7 +756,7 @@ class MigrationsHub extends IPSModule
     // macht das kenntlich und der Nutzer muss ihn trotzdem prüfen/bestätigen).
     // Ohne Treffer bleibt das Ziel leer und wird über den durchsuchbaren
     // SelectVariable-Dialog je Zeile gewählt.
-    public function AddSourceVariablesToMigrations($sourceVariables, $migrations, int $targetInstanceID = 0, int $sourceInstanceID = 0): void
+    public function AddSourceVariablesToMigrations($sourceVariables, $migrations, int $targetInstanceID = 0, int $sourceInstanceID = 0): array
     {
         $sourceVariables = $this->NormalizeFormList($sourceVariables);
         $migrations = $this->NormalizeFormList($migrations);
@@ -829,6 +829,7 @@ class MigrationsHub extends IPSModule
             ];
         }
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
+        return $migrations;
     }
 
     // Bekannte Ident-Übersetzungen für verbreitete Fremdmodule, deren Idents
@@ -965,6 +966,35 @@ class MigrationsHub extends IPSModule
         }
         unset($row);
         $this->UpdateFormField('SourceVariables', 'values', json_encode($sourceVariables));
+    }
+
+    // Bündelt den gesamten Vorbereitungsablauf (Schritt 2+3) in einem Klick:
+    // Alt-Datenpunkte laden → nur archivierte/verknüpfte auswählen → in die
+    // Migrationsliste übernehmen (mit Ident-Vorschlag/-Übersetzung) →
+    // Skript-/Event-Referenzen suchen → Übernahme simulieren. Ersetzt die
+    // bisher nötige Klickfolge über vier Formularabschnitte für den
+    // Normalfall, in dem man ohnehin nur die archivierten/verknüpften
+    // Datenpunkte migrieren will. Führt nichts aus — endet in der Simulation,
+    // damit der Nutzer das Ergebnis vor der echten Ausführung noch sieht.
+    // Baut die Migrationsliste dabei komplett neu auf (verwirft manuell
+    // gepflegte Einträge) — gedacht als Einstieg in einen frischen Lauf, nicht
+    // zum Ergänzen einer bereits bearbeiteten Liste.
+    public function PrepareAllAdoptions(int $sourceInstanceID, int $targetInstanceID): void
+    {
+        $linkCounts = $this->BuildLinkCountMap();
+        $sourceVariables = $this->GetChildVariableRows($sourceInstanceID, $linkCounts);
+        foreach ($sourceVariables as &$row) {
+            $variableID = (int) $row['VariableID'];
+            $hasArchive = $this->FindArchiveInstance($variableID) !== 0;
+            $hasLinks = ($linkCounts[$variableID] ?? 0) > 0;
+            $row['Selected'] = $hasArchive || $hasLinks;
+        }
+        unset($row);
+        $this->UpdateFormField('SourceVariables', 'values', json_encode($sourceVariables));
+
+        $migrations = $this->AddSourceVariablesToMigrations($sourceVariables, [], $targetInstanceID, $sourceInstanceID);
+        $this->ScanReferences($migrations);
+        $this->SimulateAdoptions($migrations);
     }
 
     // --- Referenz-Scan: Skripte/Events, die die Alt-Variable evtl. fest per

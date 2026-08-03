@@ -113,6 +113,15 @@
       "onClick": "MIGHUB_LoadSourceVariables($id, $SourceInstanceID);"
     },
     {
+      "type": "Button",
+      "caption": "⚡ Alles vorbereiten (Standardfall: nur archivierte/verknüpfte Datenpunkte)",
+      "onClick": "MIGHUB_PrepareAllAdoptions($id, $SourceInstanceID, $TargetInstanceID);"
+    },
+    {
+      "type": "Label",
+      "caption": "Erledigt Schritt 2+3 in einem Klick: lädt die Alt-Datenpunkte, kreuzt nur archivierte/verknüpfte an, ordnet sie per Ident zu, sucht Skript-/Ereignis-Referenzen und simuliert die Übernahme — Ergebnis unten prüfen, dann direkt zu \"Jetzt ausführen\". Baut dabei die Migrationsliste komplett neu auf; für Sonderfälle (z. B. auch unarchivierte Datenpunkte) weiter die einzelnen Schritte unten nutzen."
+    },
+    {
       "type": "Label",
       "caption": "Schritt 2: gewünschte Alt-Datenpunkte ankreuzen und übernehmen"
     },
