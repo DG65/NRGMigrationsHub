@@ -116,8 +116,12 @@ Kind-Variable, deren Ident nicht im gültigen Set des aktuell gewählten Treiber
 optionale Gruppe, `MpptCount` zu klein, oder Ident dem Treiber unbekannt). Erst danach läuft die
 Ident-Wiederverwendung. Konsequenz: hängt man die historienbehaftete Original-Variable mit
 einem (noch) ungültigen Ident/Typ an, wird sie samt Historie unwiederbringlich gelöscht.
-Gegensatz: `AC_ChangeVariableID` schlägt **sicher** fehl (verweigert, Altdaten bleiben).
-Adoption braucht daher **mehr** Vorab-Sicherung, nicht weniger.
+Gegensatz: `AC_ChangeVariableID` schlägt bei bereits belegtem Ziel **sicher** fehl (verweigert,
+Altdaten bleiben) — bei Typ-Mismatch dagegen NICHT: dort wirft es live einen Fatal Error
+("Variablen müssen vom selben Typ sein") statt `false` zurückzugeben (live bestätigt über
+ChargerHub, 03.08.2026, Rückfall-Pfad bei Integer/Boolean-Mismatch). MigrationsHub prüft den
+Typ deshalb selbst vorab und meldet einen sauberen Fehlschlag, statt den Aufruf crashen zu
+lassen. Adoption braucht trotzdem **mehr** Vorab-Sicherung als Verknüpfen, nicht weniger.
 
 **Testergebnis (23.07.2026, an InverterHub-Wegwerf-Instanz #59108):** Adoption an drei Idents
 bestätigt — `riso` (Float, Profil), `pv_total` (Float, Basisgruppe, ohne Gruppenaktivierung),

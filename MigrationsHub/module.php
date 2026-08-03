@@ -450,6 +450,18 @@ class MigrationsHub extends IPSModule
                 // Altwerte im Archiv haben — realer Fall aus einer MeterHub-Analyse).
                 return ['success' => false, 'reason' => 'Zielvariable hat bereits Archivhistorie', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
             }
+            // AC_ChangeVariableID schlägt bei Typ-Mismatch NICHT sicher mit
+            // false fehl (wie ursprünglich angenommen), sondern wirft live
+            // einen Fatal Error ("Variablen müssen vom selben Typ sein") —
+            // bestätigt über ChargerHub (Integer vs. Boolean bei einem
+            // Übernahme-Rückfall). Nur relevant, wenn überhaupt Archivhistorie
+            // übertragen werden soll — reines Verlinken (kein Archiv) ist von
+            // Variablentypen unabhängig, daher der Check erst hier.
+            $oldType = IPS_GetVariable($oldVariableID)['VariableType'];
+            $newType = IPS_GetVariable($newVariableID)['VariableType'];
+            if ($oldType !== $newType) {
+                return ['success' => false, 'reason' => 'Datentyp passt nicht (' . $this->TypeName($oldType) . ' vs. ' . $this->TypeName($newType) . ')', 'archived' => false, 'relinked' => 0, 'dryRun' => $dryRun];
+            }
             if ($dryRun) {
                 $archived = true; // würde übertragen werden
             } else {
