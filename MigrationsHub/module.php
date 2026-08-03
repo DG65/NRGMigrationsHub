@@ -192,6 +192,18 @@ class MigrationsHub extends IPSModule
         $eventChecks = json_decode($this->ReadAttributeString('EventChecks'), true);
         $migrationLog = json_decode($this->ReadAttributeString('MigrationLog'), true);
 
+        // "Alt-Datenpunkte" (Schritt 2) ist — anders als "Migrations" — keine
+        // Instanz-Eigenschaft, sondern ein rein clientseitiger Listenwert:
+        // ohne diese Zeile bliebe die Tabelle nach jedem Neuöffnen des
+        // Formulars leer, obwohl die Migrationsliste (Schritt 3) weiter
+        // Einträge zeigt — für den Nutzer nicht als "muss neu geladen werden"
+        // erkennbar, sondern wie ein Fehler. Bei gesetzter Alt-Instanz daher
+        // bei jedem Öffnen automatisch neu befüllen.
+        $sourceInstanceID = $this->ReadPropertyInteger('SourceInstanceID');
+        $sourceVariables = $sourceInstanceID !== 0
+            ? $this->GetChildVariableRows($sourceInstanceID, $this->BuildLinkCountMap())
+            : [];
+
         $elements = [];
         foreach ($form['elements'] as $element) {
             $elements[] = $element;
@@ -217,6 +229,8 @@ class MigrationsHub extends IPSModule
                 $elements[count($elements) - 1]['caption'] = $this->BuildStatusLine($scriptChecks, $eventChecks);
             } elseif (($element['name'] ?? '') === 'MigrationLog') {
                 $elements[count($elements) - 1]['values'] = array_reverse($migrationLog); // neueste zuerst
+            } elseif (($element['name'] ?? '') === 'SourceVariables') {
+                $elements[count($elements) - 1]['values'] = $sourceVariables;
             }
         }
         $form['elements'] = $elements;
