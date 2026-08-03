@@ -29,6 +29,44 @@ nach Bestätigung `PrefillMigration` aufrufen, dann per `OpenObjectButton` (Inst
 Formular dorthin navigieren. Abgestimmt mit InverterHub (29.07.2026), Ausschluss-Parameter mit
 ChargerHub (03.08.2026).
 
+## Ident-Auskunft von Zielmodulen (`<PREFIX>_GetIdentMapping`, Verbund-Vertrag 03.08.2026)
+
+Gegenrichtung zur Discovery-Integration: Hub-Module (InverterHub/MeterHub/ChargerHub) können
+MigrationsHub optional mitteilen, wie sie die Idents eines bekannten Fremdmoduls auf ihre eigenen
+abbilden — statt dass wir das extern raten oder mühsam aus fremdem Quellcode nachbauen (Lehre aus
+der go-e-Charger-Migration, wo eine hartkodierte, teils fehlerhafte Tabelle nötig war, siehe
+`GetKnownIdentTranslation()`).
+
+Vertrag: `<PREFIX>_GetIdentMapping($id, string $foreignModuleGUID, array $foreignIdents): array`
+— `$id` = die MigrationsHub anfragende Zielinstanz (kennt ihr eigenes aktuell gültiges Ident-Set,
+das ist bei manchen Modulen instanzabhängig, z. B. je nach Zählertyp/Messmodus bei MeterHub);
+`$foreignIdents` = die tatsächlich an der Alt-Instanz vorhandenen Idents (nötig, weil manche
+Vorgängermodule Felder je nach Firmware unterschiedlich benennen, z. B. `power1` vs.
+`phase1Power` bei MeterHubs Inexogy-Fall). Rückgabe: `['altIdent' => ['ident' => 'neuIdent',
+'type' => int (IPS `VARIABLETYPE_*`: 0=Bool,1=Int,2=Float,3=String)], ...]`, nur erkannte
+Treffer, leeres Array = "kenne diese Fremdmodul-GUID nicht" (kein Fehler).
+
+**Bewusst NUR eine Auskunftsfunktion, keine zweite Funktion für die eigentliche Übernahme.**
+Ein ursprünglicher Gegenvorschlag (Zielmodul reparentet selbst per eigener
+`AdoptFromLegacyInstance()`-Funktion) wurde verworfen: MigrationsHub reparentet Alt-Variablen
+selbst per `IPS_SetParent`/`IPS_SetIdent`, BEVOR `IPS_ApplyChanges($targetInstanceID)` aufgerufen
+wird — die im Zielmodul ohnehin vorhandene Prune-vor-Register-Sequenz (bestätigt im eigenen Code
+von InverterHub UND MeterHub: erst gültiges Ident-Set berechnen, dann `PruneForeignObjects()`,
+dann `RegisterVar()`/Äquivalent) greift dann automatisch korrekt, weil die Variablen zu diesem
+Zeitpunkt schon umbenannt sind — kein Rateaufwand mehr über die bisherige Preflight-Sonde nötig,
+sobald das Zielmodul `GetIdentMapping` anbietet. Reparenting/Pruning/Simulation/Ausführung
+bleiben dadurch vollständig zentral bei MigrationsHub (Single Point of Truth, wie von ChargerHub
+betont) — das Zielmodul fasst dabei keine IPS-Objekte an, liefert nur Auskunft.
+
+Aufruf bei uns über `GetForeignIdentMapping()`: Prefix des Zielmoduls dynamisch via
+`IPS_GetModule($moduleID)['Prefix']` ermittelt (kein hartkodiertes Mapping nötig), Aufruf
+`function_exists()`-abgesichert wie jeder Fremdaufruf. Module ohne diese Funktion (oder mit
+leerem Ergebnis für die konkrete Fremdmodul-GUID) fallen automatisch auf die bisherige
+Preflight-Sonde plus die hartkodierte `GetKnownIdentTranslation()`-Tabelle zurück — kein
+Breaking Change für Module, die (noch) nicht mitziehen. Umsetzungsstand 03.08.2026:
+InverterHub befüllt zunächst nur GoodweET (1:1-Portierung), MeterHub den Discovergy-Fall,
+ChargerHub den go-e-Charger-Fall (löst die bisherige externe Tabelle bei uns ab, sobald live).
+
 **Plattform-Falle (Verbund-relevant, per 03.08.2026 bestätigt): PHP-Default-Werte optionaler
 Parameter gelten NICHT für den `MIGHUB_*`-RPC-Wrapper.** Als `FindLegacyCandidates()` einen 5.
 Parameter mit PHP-Default `= 0` bekam, brach bei ChargerHub (Aufruf mit den bisherigen 4

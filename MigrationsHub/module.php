@@ -849,9 +849,16 @@ class MigrationsHub extends IPSModule
             $targetByIdent[$targetRow['Ident']] = (int) $targetRow['VariableID'];
         }
 
+        // Zielmodul selbst nach einer Ident-/Typ-Zuordnung fragen (Verbund-
+        // Vertrag <PREFIX>_GetIdentMapping, siehe CLAUDE.md) — hat Vorrang vor
+        // der hartkodierten Tabelle unten, weil das Zielmodul sein eigenes
+        // Ident-Set aktuell und exakt kennt statt dass wir es extern raten.
+        $foreignMapping = $this->GetForeignIdentMapping($targetInstanceID, $sourceInstanceID);
+
         // Bekannte Ident-Übersetzung für dieses Quellmodul (falls hinterlegt) —
-        // greift nur, wenn der direkte Ident-Abgleich nichts findet. Wird
-        // beim ersten Gebrauch dieser Instanz-Kombination einmal aufgebaut.
+        // greift nur, wenn weder direkter Ident-Abgleich noch GetIdentMapping
+        // etwas finden. Wird beim ersten Gebrauch dieser Instanz-Kombination
+        // einmal aufgebaut.
         $knownTranslation = $this->GetKnownIdentTranslation($sourceInstanceID);
 
         // array_column() setzt Arrays oder Objekte mit öffentlichen Properties
@@ -871,7 +878,15 @@ class MigrationsHub extends IPSModule
                 continue;
             }
             $suggestedNewID = $targetByIdent[$row['Ident']] ?? 0;
+            $viaForeignMapping = false;
             $viaKnownTranslation = false;
+            if ($suggestedNewID === 0 && isset($foreignMapping[$row['Ident']]['ident'])) {
+                $mappedIdent = $foreignMapping[$row['Ident']]['ident'];
+                if (isset($targetByIdent[$mappedIdent])) {
+                    $suggestedNewID = $targetByIdent[$mappedIdent];
+                    $viaForeignMapping = true;
+                }
+            }
             if ($suggestedNewID === 0 && $knownTranslation !== null) {
                 $translatedIdent = $knownTranslation($row['Ident']);
                 if ($translatedIdent !== null && isset($targetByIdent[$translatedIdent])) {
@@ -886,6 +901,8 @@ class MigrationsHub extends IPSModule
                 // zu verhindern.
                 $status = 'Wh-Zwilling → kWh-Variante »' . $whTwins[$oldID] . '« bevorzugen';
                 $suggestedNewID = 0;
+            } elseif ($viaForeignMapping) {
+                $status = 'Vorschlag vom Zielmodul (GetIdentMapping) — bitte prüfen';
             } elseif ($viaKnownTranslation) {
                 $status = 'Vorschlag anhand bekannter Fremdmodul-Übersetzung — bitte prüfen';
             } elseif ($suggestedNewID !== 0) {
@@ -912,6 +929,49 @@ class MigrationsHub extends IPSModule
         }
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
         return $migrations;
+    }
+
+    // Fragt das Zielmodul selbst nach einer Ident-/Typ-Zuordnung für dieses
+    // Fremdmodul (Verbund-Vertrag, mit InverterHub/MeterHub/ChargerHub am
+    // 03.08.2026 abgestimmt): <PREFIX>_GetIdentMapping($targetInstanceID,
+    // $foreignModuleGUID, $foreignIdents): array. Ersetzt zunehmend die
+    // hartkodierte Tabelle in GetKnownIdentTranslation(), weil das Zielmodul
+    // sein eigenes Ident-Set aktuell und exakt kennt statt dass wir es extern
+    // nachbauen (Lehre aus der go-e-Charger-Migration, bei der wir die
+    // Übersetzung mühsam und fehleranfällig aus fremdem GitHub-Quellcode
+    // rekonstruieren mussten). Reparenting/Simulation/Ausführung bleiben
+    // vollständig bei uns — das Zielmodul liefert nur Auskunft, fasst keine
+    // Objekte an. function_exists()-abgesichert wie jeder Fremdaufruf; liefert
+    // [], wenn das Zielmodul die Funktion (noch) nicht anbietet, kein
+    // MigrationsHub-Prefix ermittelbar ist, oder das Fremdmodul dem Zielmodul
+    // unbekannt ist (leeres Ergebnis ist dabei kein Fehler).
+    private function GetForeignIdentMapping(int $targetInstanceID, int $sourceInstanceID): array
+    {
+        if ($targetInstanceID === 0 || $sourceInstanceID === 0) {
+            return [];
+        }
+        if (!IPS_InstanceExists($targetInstanceID) || !IPS_InstanceExists($sourceInstanceID)) {
+            return [];
+        }
+        $targetModuleID = IPS_GetInstance($targetInstanceID)['ModuleInfo']['ModuleID'] ?? '';
+        if ($targetModuleID === '') {
+            return [];
+        }
+        $prefix = IPS_GetModule($targetModuleID)['Prefix'] ?? '';
+        if ($prefix === '') {
+            return [];
+        }
+        $function = $prefix . '_GetIdentMapping';
+        if (!function_exists($function)) {
+            return [];
+        }
+        $foreignModuleGUID = IPS_GetInstance($sourceInstanceID)['ModuleInfo']['ModuleID'] ?? '';
+        $foreignIdents = array_map(
+            fn ($row) => $row['Ident'],
+            $this->GetChildVariableRows($sourceInstanceID)
+        );
+        $mapping = @$function($targetInstanceID, $foreignModuleGUID, $foreignIdents);
+        return is_array($mapping) ? $mapping : [];
     }
 
     // Bekannte Ident-Übersetzungen für verbreitete Fremdmodule, deren Idents
