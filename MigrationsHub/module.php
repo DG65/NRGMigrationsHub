@@ -185,9 +185,13 @@ class MigrationsHub extends IPSModule
     // Formular-Schaltflächen.
     public function PrefillMigration(int $oldInstanceID, int $newInstanceID): void
     {
-        $this->SetProperty('SourceInstanceID', $oldInstanceID);
-        $this->SetProperty('TargetInstanceID', $newInstanceID);
-        $this->ApplyChanges();
+        // $this->SetProperty() existiert entgegen der Annahme nicht auf
+        // IPSModule (live bestätigt: "Call to undefined method") — der
+        // dokumentierte Weg ist die globale IPS_SetProperty() auf die eigene
+        // InstanceID, danach ApplyChanges() zum Übernehmen.
+        IPS_SetProperty($this->InstanceID, 'SourceInstanceID', $oldInstanceID);
+        IPS_SetProperty($this->InstanceID, 'TargetInstanceID', $newInstanceID);
+        IPS_ApplyChanges($this->InstanceID);
     }
 
     // Befüllt die attribut-gestützten Checklisten beim Öffnen des Formulars —
