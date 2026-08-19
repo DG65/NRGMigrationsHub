@@ -12,7 +12,7 @@ IP-Symcon-Modul zur Migration von Bestandsgeräten: Übernahme alter Variablen a
 — **mitsamt Archivhistorie und bestehenden Verknüpfungen**.
 
 Teil des **NRG-Stack** — welche Modulstände zusammenpassen, steht im Manifest
-[EMS/SUITE.md](https://github.com/DG65/EMS/blob/main/SUITE.md).
+[EMS/SUITE.md](https://github.com/DG65/NRGEMS/blob/main/SUITE.md).
 
 ## Wofür braucht man das?
 

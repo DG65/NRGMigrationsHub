@@ -10,7 +10,7 @@ Sitzungen** gearbeitet:
 - **InverterHub**: Wechselrichter per Modbus TCP — https://github.com/DG65/InverterHub
 - **MeterHub**: Energiezähler per Modbus TCP — https://github.com/DG65/MeterHub
 - **ChargerHub**: Wallboxen per Modbus TCP — https://github.com/DG65/ChargerHub
-- **EMS**: koordinierende Instanz — https://github.com/DG65/EMS
+- **EMS**: koordinierende Instanz — https://github.com/DG65/NRGEMS
 
 ## Discovery-Integration (API für andere Module)
 
@@ -249,7 +249,7 @@ Erkenntnisse aus bisherigen Store-Reviews im Verbund — bei jeder Änderung ein
 - **Lizenz: PolyForm Noncommercial 1.0.0** (privat/nicht-kommerziell frei, gewerblich
   lizenzpflichtig — Kontakt DG65). Kanonischer `LICENSE`-Text im EMS-Repo, 1:1 übernehmen; wirkt
   nur nach vorn (MIT-Altversionen bleiben MIT).
-- **Versionierung (Verbund-Konvention, Manifest [EMS/SUITE.md](https://github.com/DG65/EMS/blob/main/SUITE.md)):**
+- **Versionierung (Verbund-Konvention, Manifest [EMS/SUITE.md](https://github.com/DG65/NRGEMS/blob/main/SUITE.md)):**
   Modul-Version bleibt SemVer je Modul. Jeder Datenvertrag (`*_GetFunctions` u. ä.) liefert
   `contractVersion => 'Major.Minor'` — Major nur bei Bruch (Kompatibilität nur innerhalb derselben
   Major, blue'Log-Prinzip), Minor additiv, fehlend = `'1.0'`. Ist die Major eines Partnermoduls zu
