@@ -7,9 +7,9 @@ Sitzungen** gearbeitet:
 
 - **MigrationsHub** (dieses Repo): Migration von Bestandsgeräten/Verknüpfungen/Archivwerten —
   https://github.com/DG65/NRGMigrationsHub
-- **InverterHub**: Wechselrichter per Modbus TCP — https://github.com/DG65/InverterHub
-- **MeterHub**: Energiezähler per Modbus TCP — https://github.com/DG65/MeterHub
-- **ChargerHub**: Wallboxen per Modbus TCP — https://github.com/DG65/ChargerHub
+- **InverterHub**: Wechselrichter per Modbus TCP — https://github.com/DG65/NRGInverterHub
+- **MeterHub**: Energiezähler per Modbus TCP — https://github.com/DG65/NRGMeterHub
+- **ChargerHub**: Wallboxen per Modbus TCP — https://github.com/DG65/NRGChargerHub
 - **EMS**: koordinierende Instanz — https://github.com/DG65/NRGEMS
 
 ## Discovery-Integration (API für andere Module)

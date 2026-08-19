@@ -8,7 +8,7 @@
 
 IP-Symcon-Modul zur Migration von Bestandsgeräten: Übernahme alter Variablen auf neue Instanzen
 (z. B. nach einem Gerätetausch oder beim Umstieg von einer Einzellösung auf ein Hub-Modul wie
-[InverterHub](https://github.com/DG65/InverterHub) oder [MeterHub](https://github.com/DG65/MeterHub))
+[InverterHub](https://github.com/DG65/NRGInverterHub) oder [MeterHub](https://github.com/DG65/NRGMeterHub))
 — **mitsamt Archivhistorie und bestehenden Verknüpfungen**.
 
 Teil des **NRG-Stack** — welche Modulstände zusammenpassen, steht im Manifest
