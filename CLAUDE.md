@@ -79,6 +79,12 @@ Parameter zu geben ist **immer ein Breaking Change** für externe Aufrufer, ganz
 PHP-Default versehen oder nicht — braucht denselben Koordinationsaufwand wie eine
 `contractVersion`-Major-Änderung: alle bekannten Aufrufer vorher informieren und synchron
 umstellen (wie hier mit ChargerHub geschehen), sonst bricht es live und unangekündigt.
+Zweiter Live-Beleg (03.08.2026, später am Tag): derselbe Parameter-Anbau hat MeterHubs
+komplettes Discovery-Formular gecrasht (die riefen vertragsgemäß mit 4 Argumenten auf) —
+Konsequenzen daraus: künftig bei Erweiterungsbedarf lieber eine NEUE Funktion anlegen (z. B.
+`FindLegacyCandidates2`) statt Parameter anzubauen, und als Konsument Fremdaufrufe in
+try/catch legen, damit ein Vertragsbruch nur zu "kein Ergebnis" degradiert (so macht es
+MeterHub seit 25a2a83).
 
 ## Sprachregel (Verbund-Vertrag, gilt für alle Module)
 
