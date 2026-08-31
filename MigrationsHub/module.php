@@ -373,14 +373,14 @@ class MigrationsHub extends IPSModule
     // werden deshalb per Index in die vollständig gespeicherten Attribut-
     // Zeilen zurückgemergt statt sie zu ersetzen (sonst gingen OldName/
     // OldVariableID genauso verloren wie zuvor beim Property-Speichern).
-    public function SaveScriptChecks($scriptChecks): void
+    public function SaveScriptChecks(mixed $scriptChecks): void
     {
         $this->WriteAttributeString('ScriptChecks', json_encode(
             $this->MergeCheckEdits(json_decode($this->ReadAttributeString('ScriptChecks'), true), $this->NormalizeFormList($scriptChecks))
         ));
     }
 
-    public function SaveEventChecks($eventChecks): void
+    public function SaveEventChecks(mixed $eventChecks): void
     {
         $this->WriteAttributeString('EventChecks', json_encode(
             $this->MergeCheckEdits(json_decode($this->ReadAttributeString('EventChecks'), true), $this->NormalizeFormList($eventChecks))
@@ -838,7 +838,7 @@ class MigrationsHub extends IPSModule
     // macht das kenntlich und der Nutzer muss ihn trotzdem prüfen/bestätigen).
     // Ohne Treffer bleibt das Ziel leer und wird über den durchsuchbaren
     // SelectVariable-Dialog je Zeile gewählt.
-    public function AddSourceVariablesToMigrations($sourceVariables, $migrations, int $targetInstanceID = 0, int $sourceInstanceID = 0): array
+    public function AddSourceVariablesToMigrations(mixed $sourceVariables, mixed $migrations, int $targetInstanceID = 0, int $sourceInstanceID = 0): array
     {
         $sourceVariables = $this->NormalizeFormList($sourceVariables);
         $migrations = $this->NormalizeFormList($migrations);
@@ -1079,7 +1079,7 @@ class MigrationsHub extends IPSModule
     // Setzt die Auswahl-Checkbox aller Zeilen der Alt-Datenpunkt-Liste auf
     // $select — Komfortfunktion, damit man bei vielen Datenpunkten nicht jede
     // Zeile einzeln ankreuzen muss.
-    public function SetAllSourceVariablesSelected($sourceVariables, bool $select): void
+    public function SetAllSourceVariablesSelected(mixed $sourceVariables, bool $select): void
     {
         $sourceVariables = $this->NormalizeFormList($sourceVariables);
         foreach ($sourceVariables as &$row) {
@@ -1096,7 +1096,7 @@ class MigrationsHub extends IPSModule
     // bei Fremdmodulen mit vielen Datenpunkten (z. B. go-e-Charger, 60
     // Idents, aber oft nur eine Handvoll mit echter Historie) die Auswahl auf
     // das Wesentliche, statt "alles ankreuzen und Ballast mitschleppen".
-    public function SelectOnlyReferencedSourceVariables($sourceVariables): void
+    public function SelectOnlyReferencedSourceVariables(mixed $sourceVariables): void
     {
         $sourceVariables = $this->NormalizeFormList($sourceVariables);
         $linkCounts = $this->BuildLinkCountMap();
@@ -1187,7 +1187,7 @@ class MigrationsHub extends IPSModule
     // Abhak-Listen (ScriptChecks/EventChecks) — bereits vorhandene Einträge
     // (inkl. bereits gesetztem "Erledigt"-Haken) bleiben unangetastet, damit
     // ein erneuter Scan den Fortschritt nicht zurücksetzt.
-    public function ScanReferences($migrations): void
+    public function ScanReferences(mixed $migrations): void
     {
         $migrations = $this->NormalizeFormList($migrations);
         // Bestand aus den Attributen lesen (nicht aus dem Formular): dort
@@ -1304,7 +1304,7 @@ class MigrationsHub extends IPSModule
     // sich vorab sehen, welche Paare fehlschlagen würden (z. B. Ziel bereits
     // archiviert), bevor der unwiderrufliche Schritt ausgeführt wird. Braucht
     // bewusst keine Confirmed-Checkbox, weil dabei nichts verändert wird.
-    public function SimulateMigrations($migrations): void
+    public function SimulateMigrations(mixed $migrations): void
     {
         [$migrations, $results] = $this->ProcessMigrations($this->NormalizeFormList($migrations), true);
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
@@ -1316,7 +1316,7 @@ class MigrationsHub extends IPSModule
     // "confirm"); die Confirmed-Checkbox ist ein zweites, unabhängiges
     // Sicherheits-Gate, weil der Vorgang Archivhistorie unwiderruflich
     // überträgt.
-    public function RunMigrations(bool $confirmed, $migrations): void
+    public function RunMigrations(bool $confirmed, mixed $migrations): void
     {
         $migrations = $this->NormalizeFormList($migrations);
 
@@ -1383,7 +1383,7 @@ class MigrationsHub extends IPSModule
 
     // Simuliert den Adoptions-Lauf (nicht-mutierend): sagt je Paar voraus, ob
     // adoptiert würde oder auf AC_ChangeVariableID zurückgefallen wird.
-    public function SimulateAdoptions($migrations): void
+    public function SimulateAdoptions(mixed $migrations): void
     {
         [$migrations, $results] = $this->ProcessAdoptions($this->NormalizeFormList($migrations), true);
         $this->UpdateFormField('Migrations', 'values', json_encode($migrations));
@@ -1399,7 +1399,7 @@ class MigrationsHub extends IPSModule
     // eigenen Suite-Module haben wir selbst gegen dieses Verhalten getestet.
     // Bei Fremdmodulen ist dieser Schalter die "Einverständniserklärung", auf
     // die der Nutzer bewusst eingeht.
-    public function RunAdoptions(bool $confirmed, bool $riskAcknowledged, $migrations): void
+    public function RunAdoptions(bool $confirmed, bool $riskAcknowledged, mixed $migrations): void
     {
         $migrations = $this->NormalizeFormList($migrations);
         if (!$confirmed || !$riskAcknowledged) {
