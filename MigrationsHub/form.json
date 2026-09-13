@@ -125,9 +125,10 @@
         },
         {
           "type": "PopupButton",
-          "caption": "?",
-          "width": "70px",
+          "caption": "Was bedeuten die Spalten \"Referenzen\" und \"Plausibel\"?",
+          "width": "480px",
           "popup": {
+            "caption": "Was bedeuten die Spalten \"Referenzen\" und \"Plausibel\"?",
             "items": [
               {
                 "type": "Label",
