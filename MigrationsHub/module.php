@@ -831,6 +831,19 @@ class MigrationsHub extends IPSModule
         return implode(', ', $parts);
     }
 
+    // Abwärtskompatible Hülle für Aufrufer mit der alten (Beta-)Signatur ohne
+    // $sourceInstanceID — feste Arität der Symcon-Kernel-Wrapper macht jeden
+    // zusätzlichen Parameter zu einem Bruch (siehe SUITE.md/CLAUDE.md
+    // "Plattform-Falle"), daher bleibt diese Funktion unverändert bestehen und
+    // die eigentliche Logik wandert nach AddSourceVariablesToMigrationsEx().
+    // Ohne $sourceInstanceID entfällt nur der Vorschlag über die bekannte
+    // Fremdmodul-Übersetzung bzw. GetIdentMapping — sicherer Fallback (reiner
+    // Ident-Abgleich), kein Sicherheitsrisiko wie bei RunAdoptions/riskAcknowledged.
+    public function AddSourceVariablesToMigrations(mixed $sourceVariables, mixed $migrations, int $targetInstanceID = 0): array
+    {
+        return $this->AddSourceVariablesToMigrationsEx($sourceVariables, $migrations, $targetInstanceID, 0);
+    }
+
     // Übernimmt die in Schritt 2 angehakten Alt-Datenpunkte als neue Zeilen in
     // die Migrationsliste (Schritt 3). Ist die Neu-Instanz aus Schritt 1
     // gesetzt, wird als Zielvorschlag die Variable mit demselben Ident dort
@@ -838,7 +851,7 @@ class MigrationsHub extends IPSModule
     // macht das kenntlich und der Nutzer muss ihn trotzdem prüfen/bestätigen).
     // Ohne Treffer bleibt das Ziel leer und wird über den durchsuchbaren
     // SelectVariable-Dialog je Zeile gewählt.
-    public function AddSourceVariablesToMigrations(mixed $sourceVariables, mixed $migrations, int $targetInstanceID = 0, int $sourceInstanceID = 0): array
+    public function AddSourceVariablesToMigrationsEx(mixed $sourceVariables, mixed $migrations, int $targetInstanceID = 0, int $sourceInstanceID = 0): array
     {
         $sourceVariables = $this->NormalizeFormList($sourceVariables);
         $migrations = $this->NormalizeFormList($migrations);
@@ -1134,7 +1147,7 @@ class MigrationsHub extends IPSModule
         unset($row);
         $this->UpdateFormField('SourceVariables', 'values', json_encode($sourceVariables));
 
-        $migrations = $this->AddSourceVariablesToMigrations($sourceVariables, [], $targetInstanceID, $sourceInstanceID);
+        $migrations = $this->AddSourceVariablesToMigrationsEx($sourceVariables, [], $targetInstanceID, $sourceInstanceID);
         $this->ScanReferences($migrations);
         $this->SimulateAdoptions($migrations);
     }
@@ -1159,7 +1172,7 @@ class MigrationsHub extends IPSModule
         }
         unset($row);
 
-        $migrations = $this->AddSourceVariablesToMigrations($sourceVariables, [], $targetInstanceID, $sourceInstanceID);
+        $migrations = $this->AddSourceVariablesToMigrationsEx($sourceVariables, [], $targetInstanceID, $sourceInstanceID);
         [$migrations, $results] = $this->ProcessAdoptions($migrations, !$execute);
 
         if ($execute) {
@@ -1390,6 +1403,24 @@ class MigrationsHub extends IPSModule
         $this->UpdateFormField('Results', 'values', json_encode($results));
     }
 
+    // Abwärtskompatible Hülle für Aufrufer mit der alten (Beta-)Signatur ohne
+    // $riskAcknowledged — feste Arität der Symcon-Kernel-Wrapper macht jeden
+    // zusätzlichen Parameter zu einem Bruch (siehe SUITE.md/CLAUDE.md
+    // "Plattform-Falle"), daher bleibt diese Funktion unverändert bestehen und
+    // die eigentliche Logik wandert nach RunAdoptionsEx(). OHNE explizites
+    // Risiko-Einverständnis wird sicher abgelehnt statt es stillschweigend
+    // anzunehmen — ein alter Aufrufer bekommt dieselbe Fehlermeldung wie ein
+    // Nutzer, der den Risiko-Schalter im Formular nicht gesetzt hat, und den
+    // Hinweis, auf RunAdoptionsEx umzustellen.
+    public function RunAdoptions(bool $confirmed, mixed $migrations): void
+    {
+        $this->UpdateFormField('Results', 'values', json_encode([[
+            'OldName' => '', 'NewName' => '', 'Success' => 'nein',
+            'Reason' => 'Abgebrochen: Risiko-Schalter (Prune-Kante) nicht gesetzt — dieser Aufruf nutzt die alte Funktionsform ohne Risiko-Einverständnis, bitte auf RunAdoptionsEx($confirmed, $riskAcknowledged, $migrations) umstellen',
+            'OldValue' => '', 'NewValue' => '', 'Plausible' => '-',
+        ]]));
+    }
+
     // Führt den Adoptions-Lauf wirklich aus (Preflight-Sonde + Profil-Nachzug
     // + AC_ChangeVariableID-Rückfall). Dreifach abgesichert: der bestehende
     // Bestätigungsschalter, das native confirm() des Buttons UND der eigene
@@ -1399,7 +1430,7 @@ class MigrationsHub extends IPSModule
     // eigenen Suite-Module haben wir selbst gegen dieses Verhalten getestet.
     // Bei Fremdmodulen ist dieser Schalter die "Einverständniserklärung", auf
     // die der Nutzer bewusst eingeht.
-    public function RunAdoptions(bool $confirmed, bool $riskAcknowledged, mixed $migrations): void
+    public function RunAdoptionsEx(bool $confirmed, bool $riskAcknowledged, mixed $migrations): void
     {
         $migrations = $this->NormalizeFormList($migrations);
         if (!$confirmed || !$riskAcknowledged) {

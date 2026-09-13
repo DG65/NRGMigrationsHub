@@ -269,7 +269,7 @@
         {
           "type": "Button",
           "caption": "Ausgewählte Alt-Datenpunkte → in Migrationsliste übernehmen",
-          "onClick": "MIGHUB_AddSourceVariablesToMigrations($id, $SourceVariables, $Migrations, $TargetInstanceID, $SourceInstanceID);"
+          "onClick": "MIGHUB_AddSourceVariablesToMigrationsEx($id, $SourceVariables, $Migrations, $TargetInstanceID, $SourceInstanceID);"
         },
         {
           "type": "Label",
@@ -442,7 +442,7 @@
           "type": "Button",
           "caption": "Jetzt ausführen",
           "confirm": "Die alten Variablen werden unter die neuen Instanzen gehängt — ihre Kennung (und damit Archivhistorie und alle Verknüpfungen) bleibt dabei erhalten. Vor jedem Datenpunkt wird zuerst unauffällig geprüft, ob das sicher möglich ist; wo nicht, wird automatisch die Archivhistorie klassisch auf die neue Variable umgehängt. Wirklich fortfahren?",
-          "onClick": "MIGHUB_RunAdoptions($id, $Confirmed, $RiskAcknowledged, $Migrations);"
+          "onClick": "MIGHUB_RunAdoptionsEx($id, $Confirmed, $RiskAcknowledged, $Migrations);"
         }
       ]
     },
