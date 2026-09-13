@@ -305,7 +305,7 @@ class MigrationsHub extends IPSModule
             return;
         }
         $log = json_decode($this->ReadAttributeString('MigrationLog'), true);
-        $timestamp = date('Y-m-d H:i:s');
+        $timestamp = date('d.m.Y H:i');
         foreach ($entries as $entry) {
             $entry['Timestamp'] = $timestamp;
             $log[] = $entry;
